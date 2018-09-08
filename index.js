@@ -1,24 +1,39 @@
 const {Search} = require('./lib/soup');
 const express = require('express');
 const bodyParser = require('body-parser');
+const expressLayouts = require('express-ejs-layouts');
 
 const db = new Search("stonesoup.sqlite3");
 
 const app = express();
 
-app.use( bodyParser.json() );       // to support JSON-encoded bodies
-app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
+app.set('view engine', 'ejs');
+app.use(expressLayouts);
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
   extended: true
 }));
 
-app.post('/search', (req, res) => {
-  console.log(req.body);
+app.post('/api/search', (req, res) => {
   res.json(db.search(req.body));
+});
+
+app.get('/', (req, res) => res.render('index'));
+
+app.get('/search', (req, res) => {
+  const orgs = db.search(req.query);
+  res.render('search', { orgs });
+});
+
+app.get('/org/:id([0-9]+)', (req, res) => {
+  const org = db.org(req.params.id);
+  const locs = db.locs(req.params.id);
+  res.render('org/show', { org, locs });
 });
 
 app.use(express.static('static'));
 
-// app.get('/', (req, res) => res.send('Hello Worldy!'));
 
 
 app.listen(3000, () => console.log('Example app listening on port 3000!'));
