@@ -19,6 +19,13 @@ app.post('/api/search', (req, res) => {
   res.json(db.search(req.body));
 });
 
+app.get('/api/org/:id([0-9]+)', (req, res) => {
+  const org = db.org(req.params.id);
+  const locs = db.locs(req.params.id);
+  res.json({ org, locs });
+});
+
+
 app.get('/', (req, res) => res.render('index'));
 
 app.get('/search', (req, res) => {
@@ -35,6 +42,6 @@ app.get('/org/:id([0-9]+)', (req, res) => {
 app.use(express.static('static'));
 
 
-
-app.listen(3000, () => console.log('Example app listening on port 3000!'));
+const port = 5555;
+app.listen(port, () => console.log(`listening on port ${port}`));
 
