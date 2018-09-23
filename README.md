@@ -2,7 +2,14 @@ This is a start at rewriting https://github.com/datacommons/stonesoup, the direc
 that runs the http://find.coop website.
 
 It is split into a backend api server, and a frontend spa.  To run the backend, get a data commons
-database and place it at backend/stonesoup.sqlite3.  Then:
+database and place it at backend/stonesoup.sqlite3.  If you don't have one, you can copy a small
+demo db:
+
+```
+cp data/stonesoup.sqlite3 backend/stonesoup.sqlite3
+```
+
+Then:
 
 ```
 cd backend

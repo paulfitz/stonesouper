@@ -1,0 +1,27 @@
+source:
+  name: .xlsx
+  filename: jlords_hack_spots.xlsx
+
+flags:
+  add:
+    Sheet1:
+      - dccid
+  constant:
+    Sheet1:
+      PHONE: null
+      EMAIL: null
+      TYPE: null
+      Index: "Hack Spot"
+  rename:
+    Sheet1:
+      Name: name
+      lat: Latitude
+      long: Longitude
+      Address: street
+      Postcode: "Postal Code"
+
+destination:
+  name: stone_soup_v2
+  organization: "Hack Spots"
+  merge_path: /tmp/sitemem
+
