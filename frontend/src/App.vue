@@ -42,7 +42,7 @@ html, body, div {
 }
 
 #map_section { 
-  position: absolute;
+  position: fixed;
   left: 0;
   top: 0;
   width: 100vw;
@@ -56,5 +56,7 @@ html, body, div {
   width: 100vw;
   height: 100vh;
   z-index: 2000;
+}
+#directory_section { 
 }
 </style>

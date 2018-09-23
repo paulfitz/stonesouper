@@ -19,6 +19,10 @@ app.post('/api/search', (req, res) => {
   res.json(db.search(req.body));
 });
 
+app.get('/api/search', (req, res) => {
+  res.json(db.search({key: [req.query.key]}));
+});
+
 app.get('/api/org/:id([0-9]+)', (req, res) => {
   const org = db.org(req.params.id);
   const locs = db.locs(req.params.id);

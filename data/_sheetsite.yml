@@ -1,19 +1,19 @@
 source:
-  name: .xlsx
-  filename: jlords_hack_spots.xlsx
+  name: .csv
+  filename: jlords_hack_spots.csv
 
 flags:
   add:
-    Sheet1:
+    sheet:
       - dccid
   constant:
-    Sheet1:
+    sheet:
       PHONE: null
       EMAIL: null
       TYPE: null
       Index: "Hack Spot"
   rename:
-    Sheet1:
+    sheet:
       Name: name
       lat: Latitude
       long: Longitude

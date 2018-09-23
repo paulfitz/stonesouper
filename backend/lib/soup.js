@@ -68,7 +68,14 @@ class Query {
     this.joins.push('left join locations' +
                     '  on locations.taggable_id = organizations.id' +
                     '  and locations.taggable_type = "Organization"');
-    this.selects.push('locations.physical_city', 'locations.latitude', 'locations.longitude');
+    this.selects.push('locations.physical_address1',
+                      'locations.physical_address2',
+                      'locations.physical_city',
+                      'locations.physical_state',
+                      'locations.physical_zip',
+                      'locations.physical_country',
+                      'locations.latitude',
+                      'locations.longitude');
   }
 
   narrow_by_geo(part, options) {

@@ -1,9 +1,18 @@
 <template>
   <div>
-    <h1>Stone Soup Directory</h1>
-    <div v-masonry item-selector=".listing" column-width="230" gutter="10">
-      <div class="listing" v-for="result in listings">
-        <h2>{{result.name}}</h2> {{ JSON.stringify(result) }}
+    <div v-masonry item-selector=".listing" gutter="10" column-width="230" >
+      <div v-masonry-tile class="listing" v-for="result in listings">
+        <h2>{{result.name}}</h2> 
+        <div class="more">
+          {{ result.physical_address1 }}
+          {{ result.physical_address2 }}
+          <br v-if="result.physical_address1 || result.physical_address2" />
+          {{ result.physical_city }}
+          {{ result.physical_state }}
+          {{ result.physical_zip }}
+          <br v-if="result.physical_city || result.physical_state || result.physical_zip" />
+          {{ result.physical_country }}
+        </div>
       </div>
     </div>
   </div>
@@ -27,12 +36,17 @@ export default class Directory extends Vue {
 <style scoped>
 div.listing {
   display: inline-block;
-  max-width: 200px;
-  max-height: 300px;
+  min-width: 200px;
+  max-width: 300px;
+  max-height: 400px;
   margin: 0.5em;
   padding: 0.5em;
   background: white;
   border-radius: 1em;
-  overflow: scroll;
+  overflow: hide;
+}
+div.more { 
+  overflow: auto;
+  text-align: left;
 }
 </style>

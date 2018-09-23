@@ -35,7 +35,7 @@ export default class SearchBar extends Vue {
     // let i = 1;
     // i = parseInt(value, 10);
     console.log("SEARCHING FOR", value);
-    const x = await axios.post(`/api/search`, {key: [value]}, {responseType: 'json'});
+    const x = await axios.post(`/api/search`, {key: [value + "*"]}, {responseType: 'json'});
     // this.results = x.data;
     this.replaceListings(x.data);
   }
