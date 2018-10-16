@@ -15,6 +15,11 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 
+app.use((req, res, next) => {
+  console.log("GOT SOMETHING", req.url);
+  next();
+});
+
 app.post('/api/search', (req, res) => {
   res.json(db.search(req.body));
 });

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="map" id="map">
+    <div class="map fade" id="map" onclick="console.log('harro');">
     </div>
   </div>
 </template>
@@ -13,7 +13,7 @@ const L = (window as any).L;
 
 let map: any = null;
 
-function go(ndata: any[]|null) {
+function go(base, ndata: any[]|null) {
   console.log("HELLO", (document as any).getElementById("map"));
   const data = ndata || [
     { latitude: 60, longitude: 50, name: 'zing1' },
@@ -39,7 +39,7 @@ function go(ndata: any[]|null) {
   for (let i = 0; i < data.length; i++) {
     const pt = new L.LatLng(data[i].latitude, data[i].longitude);
     const title = data[i].name;
-    const marker = L.marker(pt, { title  });
+    const marker = L.marker(pt, { title });
     points.push(pt);
     marker.bindPopup(title);
     markers.addLayer(marker);
@@ -56,12 +56,12 @@ export default class Map extends Vue {
   }
 
   public mounted() {
-    go(null);
+    go(this, this.listings);
   }
 
   @Watch('listings')
   public async onPropertyChanged(value: any[], oldValue: any[]) {
-    go(value);
+    go(this, value);
   }
 }
 
@@ -71,6 +71,8 @@ export default class Map extends Vue {
 div.map {
   height: 100%;
   width: 100%;
-  opacity: 0.5;
  }
+.fade { 
+  opacity: 0.5;
+}
 </style>

@@ -5,6 +5,7 @@
       <input type="text"
              id="keyword"
              class="form-control"
+             v-on:click.stop="1"
              v-model="query">
     </div>
   </div>
@@ -35,9 +36,11 @@ export default class SearchBar extends Vue {
     // let i = 1;
     // i = parseInt(value, 10);
     console.log("SEARCHING FOR", value);
-    const x = await axios.post(`/api/search`, {key: [value + "*"]}, {responseType: 'json'});
-    // this.results = x.data;
-    this.replaceListings(x.data);
+    if (value.length > 2) {
+      const x = await axios.post(`/api/search`, {key: [value + "*"], limit: 50}, {responseType: 'json'});
+      // this.results = x.data;
+      this.replaceListings(x.data);
+    }
   }
 
   get query() {
