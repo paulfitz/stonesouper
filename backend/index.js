@@ -51,6 +51,6 @@ app.get('/org/:id([0-9]+)', (req, res) => {
 app.use(express.static('static'));
 
 
-const port = 5555;
+const port = process.env.PORT || 5555;
 app.listen(port, () => console.log(`listening on port ${port}`));
 
