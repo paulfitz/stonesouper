@@ -31,7 +31,7 @@ app.get('/api/search', (req, res) => {
 app.get('/api/org/:id([0-9]+)', (req, res) => {
   const org = db.org(req.params.id);
   const locs = db.locs(req.params.id);
-  res.json({ org, locs });
+  res.json({ org, locs: [locs]});
 });
 
 

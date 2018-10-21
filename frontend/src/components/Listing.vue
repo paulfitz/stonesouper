@@ -1,4 +1,5 @@
 <template>
+  <div class="container">
   <div class="post">
     <div class="loading" v-if="!listing">Loading...</div>
     <div v-if="error" class="error">
@@ -7,10 +8,27 @@
     <transition name="slide">
       <div v-if="listing" class="content" :key="listing.org.id">
         <h2>{{ listing.org.name }}</h2>
-        <p>{{ JSON.stringify(listing) }}</p>
+
+        {{ listing.org.description }}
+
+      <div v-for="result in listing.locs">
+        <div class="more">
+          {{ result.physical_address1 }}
+          {{ result.physical_address2 }}
+          <br v-if="result.physical_address1 || result.physical_address2" />
+          {{ result.physical_city }}
+          {{ result.physical_state }}
+          {{ result.physical_zip }}
+          <br v-if="result.physical_city || result.physical_state || result.physical_zip" />
+          {{ result.physical_country }}
+        </div>
+
+      </div>
+
         <a href="javascript:history.go(-1)">Go Back</a>
       </div>
     </transition>
+  </div>
   </div>
 </template>
 
@@ -29,17 +47,17 @@ export default class Listing extends Vue {
     super();
   }
   public async created() {
-    console.log("CREATE!!!");
     console.log(this.$route.params.id);
     const x = await axios.get(`/api/org/${this.$route.params.id}`, {responseType: 'json'});
-    console.log("Got somepthing");
-    console.log(x);
     this.replaceListing(x.data);
   }
 }
 </script>
 
-<style>
+<style scoped>
+.post {
+  margin-top: 5em;
+}
 .loading {
   position: absolute;
   top: 10px;
@@ -59,5 +77,8 @@ export default class Listing extends Vue {
 .slide-leave-active {
   opacity: 0;
   transform: translate(-30px, 0);
+}
+.more { 
+  padding: 2em;
 }
 </style>

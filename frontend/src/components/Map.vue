@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="map fade" id="map">
+    <div class="map pffade" id="map">
     </div>
   </div>
 </template>
@@ -23,7 +23,6 @@ function escapeHtml(unsafe: string) {
  }
 
 function go(base: any, ndata: any[]|null) {
-  console.log("HELLO", (document as any).getElementById("map"));
   const data = ndata || [
     { latitude: 60, longitude: 50, name: 'zing1' },
     { latitude: 70, longitude: 60, name: 'zing2' },
@@ -64,7 +63,9 @@ function go(base: any, ndata: any[]|null) {
     markers.addLayer(marker);
   }
   map.addLayer(markers);
-  map.fitBounds(new L.LatLngBounds(points));
+  if (points.length > 1) {
+    map.fitBounds(new L.LatLngBounds(points));
+  }
 }
 
 @Component
@@ -91,7 +92,7 @@ div.map {
   height: 100%;
   width: 100%;
  }
-.fade { 
+.pffade { 
   opacity: 0.5;
 }
 </style>

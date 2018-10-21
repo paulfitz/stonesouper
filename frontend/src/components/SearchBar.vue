@@ -1,13 +1,17 @@
 <template>
-  <div class="searchbar">
+  <div class="form-inline searchbar">
+  <div class="form-group">
     <div class="form-group">
-      <label for="keyword">Keywords</label>
+      <label for="keyword" class="mr-sm-2 form-control-lg">Search for an organization</label>
       <input type="text"
              id="keyword"
-             class="form-control"
+             class="form-control form-control-lg mr-sm-2 mb-2"
+             placeholder="Keywords"
              v-on:click.stop="1"
              v-model="query">
+      <button v-on:click="wipe()" class="btn btn-primary mb-2 form-control-lg">Map</button>
     </div>
+  </div>
   </div>
 </template>
 
@@ -32,25 +36,31 @@ export default class SearchBar extends Vue {
 
   @Watch('query')
   public async onPropertyChanged(value: string, oldValue: string) {
-    // Do stuff with the watcher here.
-    // let i = 1;
-    // i = parseInt(value, 10);
-    console.log("SEARCHING FOR", value);
     if (value.length > 2) {
-      const x = await axios.post(`/api/search`, {key: [value + "*"], limit: 50}, {responseType: 'json'});
-      // this.results = x.data;
-      this.replaceListings(x.data);
+      console.log("SEARCHING FOR", value);
+      try {
+        const x = await axios.post(`/api/search`, {key: [value + "*"], limit: 50}, {responseType: 'json'});
+        console.log(`GOT ${x.data.length} listings!`);
+        this.replaceListings(x.data);
+      } catch(e) {
+        console.log("ERROR", e);
+      }
     }
   }
 
   get query() {
-    console.log("READING " + this.iquery);
     return this.iquery;
   }
 
   set query(value: string) {
-    console.log("SETTING TO " + value);
     this.replaceQuery(value);
+  }
+
+  public wipe() {
+    document.getElementById("overlay_section")!.style!.display = 'none';
+    document.getElementById("revert_directory")!.style!.display = 'block';
+    document.getElementById("map")!.classList!.remove('pffade');
+    return false;
   }
 }
 </script>
@@ -58,10 +68,10 @@ export default class SearchBar extends Vue {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .searchbar {
-  padding-top: 1em;
-}
-div, input {
-  font-size: 130%;
+  padding-top: 5em;
+  padding-bottom: 5em;
+  max-width: 500px;
+  margin: 0 auto;
 }
 h3 {
   margin: 40px 0 0;

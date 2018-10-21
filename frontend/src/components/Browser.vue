@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div class="form-inline">
     <Map id="map_section" />
     <div id="revert_directory">
-      <button v-on:click="showDirectory">Directory</button>
+      <button v-on:click="showDirectory" class="btn btn-primary">Directory</button>
     </div>
     <div id="overlay_section" v-on:click="wipe">
       <SearchBar id="searchbar_section" />
@@ -30,21 +30,18 @@ export default class Browser extends Vue {
   public showDirectory() {
     document.getElementById("overlay_section")!.style!.display = 'block';
     document.getElementById("revert_directory")!.style!.display = 'none';
-    document.getElementById("map")!.classList!.add('fade');
+    document.getElementById("map")!.classList!.add('pffade');
   }
 
   public wipe() {
-    console.log("YIKES");
-    console.log(document.getElementById("overlay_section"));
     document.getElementById("overlay_section")!.style!.display = 'none';
     document.getElementById("revert_directory")!.style!.display = 'block';
-    document.getElementById("map")!.classList!.remove('fade');
-    console.log("REMOVE FADE");
+    document.getElementById("map")!.classList!.remove('pffade');
   }
 }
 </script>
 
-<style>
+<style scoped>
 html, body, div {
   margin: 0;
   padding: 0;
@@ -78,11 +75,18 @@ html, body, div {
 }
 #revert_directory button {
   display: inline-block;
-  width: 40%;
-  font-size: 300%;
+  font-size: 200%;
+  padding-top: 1em;
+  padding-left: 5em;
+  padding-right: 5em;
+  border-bottom-left-radius: 2em;
+  border-bottom-right-radius: 2em;
+  border-bottom: 10px solid white;
   pointer-events: auto;
+  cursor: pointer;
 }
 #overlay_section { 
+  background-color: transparent;
   position: absolute;
   left: 0;
   top: 0;
@@ -92,5 +96,6 @@ html, body, div {
   pointer-events: auto;
 }
 #directory_section { 
+  background: none;
 }
 </style>
