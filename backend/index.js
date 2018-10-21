@@ -35,8 +35,6 @@ app.get('/api/org/:id([0-9]+)', (req, res) => {
 });
 
 
-app.get('/', (req, res) => res.render('index'));
-
 app.get('/search', (req, res) => {
   const orgs = db.search(req.query);
   res.render('search', { orgs });
@@ -48,8 +46,7 @@ app.get('/org/:id([0-9]+)', (req, res) => {
   res.render('org/show', { org, locs });
 });
 
-app.use(express.static('static'));
-
+app.use(express.static('dist'));
 
 const port = process.env.PORT || 5555;
 app.listen(port, () => console.log(`listening on port ${port}`));
