@@ -4,9 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha test/test_api.ts",
     "start": "node ./index.js"
   },
+  "bin" : { "stonesoup": "./lib/soup.js" },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paulfitz/stonesoup-api.git"
@@ -20,8 +21,20 @@
   "dependencies": {
     "better-sqlite3": "^4.1.4",
     "body-parser": "^1.18.3",
-    "ejs": "^2.6.1",
-    "express": "^4.16.3",
-    "express-ejs-layouts": "^2.5.0"
+    "express": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.6",
+    "@types/fs-extra": "^5.0.4",
+    "@types/mocha": "^5.2.5",
+    "@types/tmp": "0.0.33",
+    "app-module-path": "^2.2.0",
+    "axios": "^0.18.0",
+    "chai": "^4.2.0",
+    "fs-extra": "^7.0.0",
+    "mocha": "^5.2.0",
+    "tmp": "0.0.33",
+    "ts-node": "^7.0.1",
+    "typescript": "^3.1.3"
   }
 }

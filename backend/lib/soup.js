@@ -61,7 +61,7 @@ class Query {
                     '  on units.taggable_id = organizations.id' +
                     '  and units.taggable_type = "Organization"');
     this.wheres.push('units match ?');
-    this.params.push(term[0]);
+    this.params.push(term.join(' '));
   }
 
   select_locations() {
@@ -122,7 +122,7 @@ class Query {
     if (this.joins) {
       txts.push(...this.joins);
     }
-    if (this.wheres) {
+    if (this.wheres && this.wheres.length) {
       txts.push("where");
       txts.push(this.wheres.join(' and '));
     }
@@ -136,7 +136,6 @@ class Query {
 class Search {
   constructor(fname) {
     const db = new Database(fname);
-    console.log(db.prepare('select name from organizations limit 3').all());
     add_math_to_sqlite(db);
     this.db = db;
   }
@@ -152,7 +151,6 @@ class Search {
   }
 
   search(args) {
-    console.log("SEARCH", args);
     const query = new Query();
     query.narrow_by_term(args.key);
     query.select_locations();
@@ -186,21 +184,18 @@ class Search {
 }
 
 if (require.main === module) {
-  const s = new Search();
-  console.log(s.search({
-    key: ['yellow'],
-    city: ['Brooklyn', 'Yellow Springs'],
-    verbose: true
-  }));
-  
-  console.log(s.search({
-    tag: ['Food'],
-    around: [42.351822, -71.057484, 10, 'mile'],
-    limit: 3,
-    verbose: true
-  }));
-
-  console.log(s.org(288));
+  if (process.argv.length < 3) {
+    console.log("call as: node ./lib/soup.js foo.sqlite3 [keyword]*");
+    process.exit(1);
+  }
+  const s = new Search(process.argv[2]);
+  const params = {
+    verbose: false
+  };
+  if (process.argv.length > 3) {
+    params.key = process.argv.slice(3);
+  }
+  console.log(JSON.stringify(s.search(params), null, 2));
 }
 
 module.exports = {
