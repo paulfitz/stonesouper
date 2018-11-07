@@ -21,5 +21,7 @@ CREATE VIRTUAL TABLE units USING fts4(taggable_id, taggable_type,
 INSERT INTO units(taggable_id,taggable_type,name,description,phone,email,website) SELECT id as taggable_id, 'Organization' as taggable_type, name, description, phone, email, website FROM organizations;
 INSERT INTO units(taggable_id,taggable_type,name,description) SELECT id as taggable_id, 'Person' as taggable_type, coalesce(firstname,'') || ' ' || coalesce(lastname,''), '' FROM people;
 INSERT INTO units_taggables(id, taggable_id, taggable_type) SELECT docid as id, taggable_id, taggable_type FROM units;
+
+UPDATE organizations SET grouping = (select o2.id from organizations as o2 where o2.source_grouping = organizations.source_grouping order by o2.id limit 1);
 EOF
 ) | sqlite3 stonesoup.sqlite3

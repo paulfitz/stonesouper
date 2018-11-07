@@ -19,6 +19,7 @@ flags:
       long: Longitude
       Address: street
       Postcode: "Postal Code"
+      Contributer's Twitter: source_grouping
 
 destination:
   name: stone_soup_v2

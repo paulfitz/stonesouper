@@ -53,6 +53,7 @@ class Query {
     this.selects = ["organizations.*"];
     this.joins.push("from organizations");
     this.limits = null;
+    this.orders = null;
   }
 
   narrow_by_term(term) {
@@ -68,14 +69,21 @@ class Query {
     this.joins.push('left join locations' +
                     '  on locations.taggable_id = organizations.id' +
                     '  and locations.taggable_type = "Organization"');
-    this.selects.push('locations.physical_address1',
-                      'locations.physical_address2',
-                      'locations.physical_city',
-                      'locations.physical_state',
-                      'locations.physical_zip',
-                      'locations.physical_country',
-                      'locations.latitude',
-                      'locations.longitude');
+    // For historic reasons, stonesoup dbs have physical and mailing addresses
+    // in a single location record.  This didn't really work well so is unused.
+    // location_label can be set to 'physical' or 'mailing' if type of address is
+    // known.
+    this.selects.push('locations.id = organizations.primary_location_id as locs__is_primary',
+                      'locations.id as locs__id',
+                      'locations.note as locs__label',
+                      'locations.physical_address1 as locs__address1',
+                      'locations.physical_address2 as locs__address2',
+                      'locations.physical_city as locs__city',
+                      'locations.physical_state as locs__state',
+                      'locations.physical_zip as locs__zip',
+                      'locations.physical_country as locs__country',
+                      'locations.latitude as locs__latitude',
+                      'locations.longitude as locs__longitude');
   }
 
   narrow_by_geo(part, options) {
@@ -110,6 +118,23 @@ class Query {
     this.params.push(...dparams);
   }
 
+  narrow_by_grouping(grouping) {
+    if (!grouping) { return; }
+    // this is intended for use only by single-entry endpoint
+    this.wheres.push('grouping = (select org2.grouping from organizations as org2 where org2.id = ?)');
+    this.params.push(grouping);
+  }
+
+  select_options(key, prefix) {
+    if (!key) { return; }
+    this.selects = ['distinct locations.physical_' + key + ' as ' + key];
+    this.orders = 'order by locations.physical_' + key;
+    if (prefix && prefix.length > 0) {
+      this.wheres.push('locations.physical_' + key + " like ? collate nocase");
+      this.params.push(prefix + '%');
+    }
+  }
+
   limit(v) {
     if (!v) { return; }
     // nasty use of wheres
@@ -128,6 +153,9 @@ class Query {
     }
     if (this.limits) {
       txts.push(this.limits);
+    }
+    if (this.orders) {
+      txts.push(this.orders);
     }
     return txts
   }
@@ -159,6 +187,8 @@ class Search {
     query.narrow_by_geo('state', args.state);
     query.narrow_by_geo('country', args.country);
     query.narrow_by_tags(args.tag);
+    query.narrow_by_grouping(args.grouping);
+    query.select_options(args.options, args.optionPrefix);
     query.limit(args.limit);
     const txts = query.serialize();
     if (args.verbose) {
@@ -180,6 +210,19 @@ class Search {
     const txts = [];
     txts.push('select * from locations where taggable_id = ? and taggable_type = ?');
     return this.db.prepare(txts.join(' ')).get(org_id, 'Organization');
+  }
+
+  groupedOrg(id, params) {
+    params = params || {};
+    params.grouping = id;
+    return this.search(params);
+  }
+
+  options(key, params) {
+    if (['city', 'state', 'country'].indexOf(key) < 0) { return []; }
+    params = params || {};
+    params.options = key;
+    return this.search(params);
   }
 }
 

@@ -7,7 +7,9 @@
     "test": "mocha test/test_api.ts",
     "start": "node ./index.js"
   },
-  "bin" : { "stonesoup": "./lib/soup.js" },
+  "bin": {
+    "stonesoup": "./lib/soup.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/paulfitz/stonesoup-api.git"
@@ -21,11 +23,13 @@
   "dependencies": {
     "better-sqlite3": "^4.1.4",
     "body-parser": "^1.18.3",
-    "express": "^4.16.3"
+    "express": "^4.16.3",
+    "lodash": "^4.17.11"
   },
   "devDependencies": {
     "@types/chai": "^4.1.6",
     "@types/fs-extra": "^5.0.4",
+    "@types/lodash": "^4.14.117",
     "@types/mocha": "^5.2.5",
     "@types/tmp": "0.0.33",
     "app-module-path": "^2.2.0",
