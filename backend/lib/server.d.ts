@@ -7,14 +7,41 @@ export interface Query {
   state?: string[],
   country?: string[],
   around?: [number, number, number, 'km'|'mile'],  // lat, long, distance, unit
-  group?: boolean
+
+  group?: boolean,
+  map?: 'min'|'normal',
 }
 
-export interface Listing {
-  org: {
-    id: number,
-    name: string,
-  }
+export interface Coord {
+  lat: string,
+  lng: string,
+}
+
+export interface Address {
+  address1: string,
+  address2: string,
+  city: string,
+  state: string,
+  country: string,
+}
+
+export interface MinMapItem extends Coord {
+  name: string,
+  org_id: number,
+  loc_id: number,
+}
+
+export interface MapItem extends MinMapItem, Address {
+}
+
+export interface Loc extends Coord, Address {
+  id: number,
+}
+
+export interface Org {
+  id: number,
+  name: string,
+  locs: Array<Loc>,
 }
 
 export interface Hit {

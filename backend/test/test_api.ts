@@ -48,7 +48,7 @@ describe('server', async () => {
         key: "Gangplank"
       }
     });
-    assert.equal(result.data.length, 2);
+    assert.equal(result.data.length, 1);
   });
 
   it('POST /api/search can return everything', async () => {
@@ -60,7 +60,7 @@ describe('server', async () => {
     const result = await search({
       key: ["Gangplank"]
     });
-    assert.equal(result.length, 2);
+    assert.equal(result.length, 1);
   });
 
   it('POST /api/search responds to body.city', async () => {
@@ -145,43 +145,76 @@ describe('server', async () => {
     assert.deepEqual(names, ['Konditori', 'La Maison du Croque Monsieur', 'Stumptown Ace Hotel']);
   });
 
-  it('GET /api/org/{orgId} works', async () => {
-    const result = await axios.get(base + '/api/org/1');
+  it('GET /api/orgs/{orgId} has org', async () => {
+    const result = await axios.get(base + '/api/orgs/1');
     assert.equal(result.data.org.id, 1);
     assert.equal(result.data.org.name, 'Arcosanti');
   });
 
-  it('GET /api/org/grouped/{orgId} works', async () => {
-    const result = await axios.get(base + '/api/org/grouped/125');
+  it('GET /api/orgs/{orgId} has orgs', async () => {
+    const result = await axios.get(base + '/api/orgs/125');
     assert.equal(result.data.orgs.length, 12);
   });
 
-  it('POST /api/org/grouped/{orgId} can be filtered', async () => {
-    const result = await axios.post(base + '/api/org/grouped/125', {
+  it('POST /api/orgs/{orgId} can be filtered', async () => {
+    const result = await axios.post(base + '/api/orgs/125', {
       city: ['Brooklyn']
     });
     assert.equal(result.data.orgs.length, 8);
   });
 
-  it('POST /api/options/city works', async () => {
-    let result = await axios.post(base + '/api/options/city', {
+  it('POST /api/city works', async () => {
+    let result = await axios.post(base + '/api/city', {
       state: ['NY'],
     });
     assert.deepEqual(result.data.options, ['Astoria', 'Brooklyn', 'Ithaca', 'New York']);
-    result = await axios.post(base + '/api/options/city', {
+    result = await axios.post(base + '/api/city', {
       state: ['NY'],
       optionPrefix: 'i'
     });
     assert.deepEqual(result.data.options, ['Ithaca']);
   });
 
-  it('POST /api/options/country works', async () => {
-    let result = await axios.post(base + '/api/options/country', {
+  it('GET /api/city works', async () => {
+    let result = await axios.get(base + '/api/city?state=NY');
+    assert.deepEqual(result.data.options, ['Astoria', 'Brooklyn', 'Ithaca', 'New York']);
+    result = await axios.get(base + '/api/city?state=NY&optionPrefix=i');
+    assert.deepEqual(result.data.options, ['Ithaca']);
+  });
+
+  it('POST /api/state works', async () => {
+    let result = await axios.post(base + '/api/state', {
+      country: ['USA'],
+    });
+    assert.includeMembers(result.data.options, ['AZ', 'CA', 'OR']);
+    result = await axios.post(base + '/api/state', {
+      country: ['USA'],
+      optionPrefix: 'm'
+    });
+    assert.deepEqual(result.data.options, ['MA', 'ME', 'MN']);
+  });
+
+  it('POST /api/country works', async () => {
+    let result = await axios.post(base + '/api/country', {
     });
     assert.includeMembers(result.data.options, ['Australia', 'Japan']);
-    result = await axios.post(base + '/api/options/country', {
+    result = await axios.post(base + '/api/country', {
       optionPrefix: 'i'
     });
     assert.deepEqual(result.data.options, ['Indonesia', 'Ireland', 'Italy']);
+  });
+
+  it('GET /api/map works', async () => {
+    const result = await axios.get(base + '/api/map?key=coffee&city=Brooklyn');
+    assert.equal(result.data.length, 2);
+    assert.includeMembers(Object.keys(result.data[0]), ['lat', 'lng', 'name']);
+  });
+
+  it('GET /api/nothing throws json error', async () => {
+    const result = await axios.get(base + '/api/nothing',
+                                   { validateStatus: (status: number) => true });
+    assert.equal(result.status, 404);
+    assert.includeMembers(Object.keys(result.data), ['error', 'code']);
+    assert.equal(result.data.code, 404);
   });
 });

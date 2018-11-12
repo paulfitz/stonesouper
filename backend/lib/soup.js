@@ -82,8 +82,8 @@ class Query {
                       'locations.physical_state as locs__state',
                       'locations.physical_zip as locs__zip',
                       'locations.physical_country as locs__country',
-                      'locations.latitude as locs__latitude',
-                      'locations.longitude as locs__longitude');
+                      'locations.latitude as locs__lat',
+                      'locations.longitude as locs__lng');
   }
 
   narrow_by_geo(part, options) {
@@ -121,7 +121,7 @@ class Query {
   narrow_by_grouping(grouping) {
     if (!grouping) { return; }
     // this is intended for use only by single-entry endpoint
-    this.wheres.push('grouping = (select org2.grouping from organizations as org2 where org2.id = ?)');
+    this.wheres.push('coalesce(grouping, organizations.id) = (select coalesce(org2.grouping, org2.id) from organizations as org2 where org2.id = ?)');
     this.params.push(grouping);
   }
 
@@ -133,6 +133,23 @@ class Query {
       this.wheres.push('locations.physical_' + key + " like ? collate nocase");
       this.params.push(prefix + '%');
     }
+  }
+
+  select_map(active) {
+    if (!active) { return; }
+    this.selects = ['locations.longitude as lng', 'locations.latitude as lat',
+                    'organizations.name as name', 'organizations.id as org_id',
+                    'locations.id as loc_id'];
+    if (active !== 'min') {
+      this.selects.push(
+        'coalesce(locations.physical_address1,locations.mailing_address1) as address1',
+        'coalesce(locations.physical_address2,locations.mailing_address2) as address2',
+        'coalesce(locations.physical_city,locations.mailing_city) as city',
+        'coalesce(locations.physical_state,locations.mailing_state) as state',
+        'coalesce(locations.physical_country,locations.mailing_country) as country'
+      );
+    }
+    this.orders = null;
   }
 
   limit(v) {
@@ -178,6 +195,12 @@ class Search {
     return arg;
   }
 
+  single(arg) {
+    if (!arg) { return arg; }
+    if (typeof(arg) === 'string') { return arg; }
+    return arg[0];
+  }
+
   search(args) {
     const query = new Query();
     query.narrow_by_term(args.key);
@@ -188,7 +211,8 @@ class Search {
     query.narrow_by_geo('country', args.country);
     query.narrow_by_tags(args.tag);
     query.narrow_by_grouping(args.grouping);
-    query.select_options(args.options, args.optionPrefix);
+    query.select_options(args.options, this.single(args.optionPrefix));
+    query.select_map(args.map);
     query.limit(args.limit);
     const txts = query.serialize();
     if (args.verbose) {
@@ -198,6 +222,12 @@ class Search {
       console.log("   ", query.params);
     }
     return this.db.prepare(txts.join(' ')).all(query.params);
+  }
+
+  map(args, flavor) {
+    args = args || {};
+    args.map = flavor || 'normal';
+    return this.search(args);
   }
 
   org(id) {

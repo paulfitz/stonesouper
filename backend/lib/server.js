@@ -30,47 +30,50 @@ function nested1(vals /*: {[key: string]: any}*/) {
 function nested(vals2 /*: Array<{[key: string]: any}>*/) {
   const unpacked = vals2.map(nested1);
   if (unpacked.length > 0) {
-    if (unpacked[0].__merge__) {
-      const results = [];
-      let at /*: string|null*/ = null;
-      let active /*: {[key: string]: any} | null*/ = null;
-      for (const vals of vals2) {
-        const nat = vals.__merge__;
-        delete vals.__merge__;
-        if (nat !== at || !active) {
-          results.push(vals);
-          active = vals;
-          at = nat;
-        }
-        const keys = Object.keys(vals);
-        for (const key of keys) {
-          const m = key.match(/^__([a-z_]+)$/);
-          if (!m) { continue; }
-          const name = m[1];
-          if (typeof active[name] !== 'object') {
-            active[name] = [];
-          }
-          if (vals[key] !== null) {
-            active[name].push(vals[key]);
-          }
-          delete vals[key];
-        }
+    const last = {};
+    const merged = [];
+    for (const o of unpacked) {
+      const id = o.id;
+      const lid = last[id];
+      if (lid === undefined) {
+        last[id] = merged.length;
+        merged.push(o);
+        if (o.locs) { o.locs = [o.locs]; }
+        else { o.locs = []; }
+      } else {
+        if (o.locs) { merged[lid].locs.push(o.locs); }
       }
-      return results;
     }
+    return merged;
   }
   return unpacked;
 }
 
-
 function groupListings(data, params) {
   if (!params.group) {
-    return data;
+    return nested(data);
   }
   return values(groupBy(data, data => data.grouping || data.id)).map(v => ({
     group: v[0].grouping,
-    orgs: v
+    orgs: nested(v)
   }));
+}
+
+function getOrPost(app, path, action) {
+  app.post(path, action);
+  app.get(path, (req, res) => {
+    const query = {};
+    for (const key of Object.keys(req.query)) {
+      const v = req.query[key];
+      if (v[0] === '[') {
+        query[key] = JSON.parse(v);
+      } else {
+        query[key] = v.split(';');
+      }
+    }
+    req.body = query;
+    return action(req, res);
+  });
 }
 
 function startServer(filename, port, verbose) {
@@ -89,40 +92,45 @@ function startServer(filename, port, verbose) {
     next();
   });
 
-  app.get('/api/search', (req, res) => {
-    const args = req.body;
-    if (req.query.key) {
-      args.key = [req.query.key];
-    }
-    res.json(groupListings(db.search(args), args));
-  });
+  const api = express.Router();
 
-  app.post('/api/search', (req, res) => {
+  getOrPost(api, '/search', (req, res) => {
     res.json(groupListings(db.search(req.body), req.body));
   });
 
-  app.get('/api/org/:id([0-9]+)', (req, res) => {
-    const org = db.org(req.params.id);
-    const locs = db.locs(req.params.id);
-    res.json({ org, locs: [locs]});
+  getOrPost(api, '/map', (req, res) => {
+    res.json(db.map(req.body));
   });
 
-  app.get('/api/org/grouped/:id([0-9]+)', (req, res) => {
-    const orgs = db.groupedOrg(req.params.id);
-    res.json({ orgs: nested(orgs) });
+  getOrPost(api, '/map/min', (req, res) => {
+    res.json(db.map(req.body, 'min'));
   });
 
-  app.post('/api/org/grouped/:id([0-9]+)', (req, res) => {
-    const orgs = db.groupedOrg(req.params.id, req.body);
-    res.json({ orgs: nested(orgs) });
+  getOrPost(api, '/orgs/:id([0-9]+)', (req, res) => {
+    const orgs = nested(db.groupedOrg(req.params.id, req.body));
+    const org = orgs.filter(o => o.id === parseInt(req.params.id, 10))[0];
+    res.json({ orgs, org });
   });
 
   for (const key of ['city', 'state', 'country']) {
-    app.post(`/api/options/${key}`, (req, res) => {
+    getOrPost(api, `/${key}`, (req, res) => {
       const options = db.options(key, req.body).map(v => v[key]);
-      res.json({ options });
+      res.json({ name: key, options });
     });
   }
+
+  api.use(function(req, res) {
+    const err = new Error("Not found");
+    err.status = 404;
+    throw err;
+  });
+
+  api.use(function(err, req, res, next) {
+    const code = err.status || 500;
+    res.status(code).json({error: err.message, code});
+  });
+
+  app.use('/api', api);
 
   app.use(express.static('dist'));
 
