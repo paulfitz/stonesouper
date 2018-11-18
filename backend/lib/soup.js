@@ -144,6 +144,7 @@ class Query {
       this.selects.push(
         'coalesce(locations.physical_address1,locations.mailing_address1) as address1',
         'coalesce(locations.physical_address2,locations.mailing_address2) as address2',
+        'coalesce(locations.physical_zip,locations.mailing_zip) as zip',
         'coalesce(locations.physical_city,locations.mailing_city) as city',
         'coalesce(locations.physical_state,locations.mailing_state) as state',
         'coalesce(locations.physical_country,locations.mailing_country) as country'
@@ -249,7 +250,7 @@ class Search {
   }
 
   options(key, params) {
-    if (['city', 'state', 'country'].indexOf(key) < 0) { return []; }
+    if (['city', 'state', 'country', 'zip'].indexOf(key) < 0) { return []; }
     params = params || {};
     params.options = key;
     return this.search(params);

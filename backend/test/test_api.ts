@@ -204,6 +204,12 @@ describe('server', async () => {
     assert.deepEqual(result.data.options, ['Indonesia', 'Ireland', 'Italy']);
   });
 
+  it('POST /api/zip works', async () => {
+    let result = await axios.post(base + '/api/zip', {
+    });
+    assert.includeMembers(result.data.options, ['94115', 'H2V 1Y1']);
+  });
+
   it('GET /api/map works', async () => {
     const result = await axios.get(base + '/api/map?key=coffee&city=Brooklyn');
     assert.equal(result.data.length, 2);
