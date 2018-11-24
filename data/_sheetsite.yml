@@ -21,6 +21,11 @@ flags:
       Postcode: "Postal Code"
       Contributer's Twitter: source_grouping
 
+tweaks:
+  - tweak: custom
+    script: hack_spots_demo
+    method: add_demo_sectors
+
 destination:
   name: stone_soup_v2
   organization: "Hack Spots"

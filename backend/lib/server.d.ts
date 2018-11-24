@@ -10,6 +10,8 @@ export interface Query {
 
   group?: boolean,
   map?: 'min'|'normal',
+  tag?: string[],
+  tags?: {[parent: string]: string[]},
 }
 
 export interface Coord {

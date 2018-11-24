@@ -65,7 +65,7 @@ function getOrPost(app, path, action) {
     const query = {};
     for (const key of Object.keys(req.query)) {
       const v = req.query[key];
-      if (v[0] === '[') {
+      if (v[0] === '[' || v[0] == '{') {
         query[key] = JSON.parse(v);
       } else {
         query[key] = v.split(';');
@@ -112,10 +112,11 @@ function startServer(filename, port, verbose) {
     res.json({ orgs, org });
   });
 
-  for (const key of ['city', 'state', 'country', 'zip']) {
+  for (const key of ['city', 'state', 'country', 'zip', 'tag']) {
     getOrPost(api, `/${key}`, (req, res) => {
-      const options = db.options(key, req.body).map(v => v[key]);
-      res.json({ name: key, options });
+      const options = db.options(key, req.body);
+      const result = (key === 'tag') ? options : options.map(v => v[key]);
+      res.json({ name: key, options: result });
     });
   }
 

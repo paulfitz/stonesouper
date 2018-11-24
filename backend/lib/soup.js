@@ -54,6 +54,7 @@ class Query {
     this.joins.push("from organizations");
     this.limits = null;
     this.orders = null;
+    this.have_tags = {};
   }
 
   narrow_by_term(term) {
@@ -95,16 +96,58 @@ class Query {
     this.params.push(...options);
   }
 
+  join_tags(postfix, joinType) {
+    joinType = joinType || 'inner';
+    if (this.have_tags[postfix]) { return; }
+    this.joins.push(`${joinType} join taggings as taggings${postfix}` +
+                    `  on taggings${postfix}.taggable_id = organizations.id` +
+                    `  and taggings${postfix}.taggable_type = "Organization"`);
+    this.joins.push(`${joinType} join tags as tags${postfix}` +
+                    `  on tags${postfix}.id = taggings${postfix}.tag_id`);
+    this.have_tags[postfix] = true;
+  }
+
   narrow_by_tags(tags) {
     if (!tags) { return; }
     const qs = tags.map(x => '?').join(',');
-    this.joins.push('inner join taggings' +
-                    '  on taggings.taggable_id = organizations.id' +
-                    '  and taggings.taggable_type = "Organization"');
-    this.joins.push('inner join tags' +
-                    '  on tags.id = taggings.tag_id');
+    this.join_tags("")
     this.wheres.push(`tags.name in (${qs})`);
     this.params.push(...tags);
+  }
+
+  narrow_by_many_tags(tags) {
+    if (!tags) { return; }
+    const keys = Object.keys(tags);
+    for (const key of keys) {
+      const ktags = tags[key];
+      const ptags = tags[key].filter(k => k[0] !== '!');
+      const ntags = tags[key].filter(k => k[0] === '!').map(k => k.slice(1));
+      const postfix = key ? `_${key}` : '';
+      if (ptags.length > 0) {
+        this.join_tags(postfix)
+        if (key !== '') {
+          // key is the expected parent
+          this.wheres.push(`tags${postfix}.parent_id = (select id from tags as t${postfix} where name = ? order by id limit 1)`);
+          this.params.push(key);
+        }
+        const pqs = ptags.map(x => '?').join(',');
+        this.wheres.push(`tags${postfix}.name in (${pqs})`);
+        this.params.push(...ptags);
+      }
+      if (ntags.length > 0) {
+        const npostfix = '_' + postfix;
+        const nqs = ntags.map(x => '?').join(',');
+        this.wheres.push(`not exists(select 1 from taggings as tg2${npostfix} inner join tags as t2${npostfix} on tg2${npostfix}.tag_id = t2${npostfix}.id where tg2${npostfix}.taggable_id = organizations.id and tg2${npostfix}.taggable_type=? and t2${npostfix}.parent_id = (select id from tags as t${npostfix} where name = ? order by id limit 1) and t2${npostfix}.name in (${nqs}))`)
+        this.params.push('Organization');
+        this.params.push(key);
+        this.params.push(...ntags);
+      }
+    }
+  }
+
+  narrow_by_dsos(dsos) {
+    if (!dsos) { return; }
+    throw new Error('not implemented yet');
   }
 
   narrow_by_distance(around) {
@@ -126,6 +169,22 @@ class Query {
   }
 
   select_options(key, prefix) {
+    if (!key) { return; }
+    if (key === 'tag') { this.select_tag_options(prefix); }
+    else { this.select_loc_options(key, prefix); }
+  }
+
+  select_tag_options(prefix) {
+    this.selects = ['distinct tags.id, tags.name'];
+    this.orders = 'order by tags.name';
+    this.join_tags("");
+    if (prefix && prefix.length > 0) {
+      this.wheres.push("tags.name like ? collate nocase");
+      this.params.push(prefix + '%');
+    }
+  }
+
+  select_loc_options(key, prefix) {
     if (!key) { return; }
     this.selects = ['distinct locations.physical_' + key + ' as ' + key];
     this.orders = 'order by locations.physical_' + key;
@@ -211,6 +270,8 @@ class Search {
     query.narrow_by_geo('state', args.state);
     query.narrow_by_geo('country', args.country);
     query.narrow_by_tags(args.tag);
+    query.narrow_by_many_tags(args.tags);
+    query.narrow_by_dsos(args.dsos);
     query.narrow_by_grouping(args.grouping);
     query.select_options(args.options, this.single(args.optionPrefix));
     query.select_map(args.map);
@@ -250,7 +311,7 @@ class Search {
   }
 
   options(key, params) {
-    if (['city', 'state', 'country', 'zip'].indexOf(key) < 0) { return []; }
+    if (['city', 'state', 'country', 'zip', 'tag'].indexOf(key) < 0) { return []; }
     params = params || {};
     params.options = key;
     return this.search(params);

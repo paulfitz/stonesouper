@@ -132,6 +132,33 @@ describe('server', async () => {
     assert.isAbove(result.length, 20);
   });
 
+  it('POST /api/search responds to body.tags', async () => {
+    let result: Hit[];
+    result = await search({
+      tags: {
+        'Sector': ['open-password-place']
+      }
+    });
+    assert.equal(result.length, 17);
+
+    result = await search({
+      tags: {
+        'Sector': ['open-password-place'],
+        'LegalStructure': ['wacky'],
+      }
+    });
+    assert.equal(result.length, 6);
+
+    result = await search({
+      tags: {
+        'Sector': ['open-password-place'],
+        'LegalStructure': ['!wacky'],
+      }
+    });
+    assert.equal(result.length, 11);
+  });
+
+
   it('POST /api/search responds to body.group', async () => {
     let groups: Group[];
 
@@ -208,6 +235,13 @@ describe('server', async () => {
     let result = await axios.post(base + '/api/zip', {
     });
     assert.includeMembers(result.data.options, ['94115', 'H2V 1Y1']);
+  });
+
+  it('POST /api/tag works', async () => {
+    let result = await axios.post(base + '/api/tag', {
+    });
+    const tags = result.data.options.map((tag: any) => tag.name);
+    assert.includeMembers(tags, ['hack spot']);
   });
 
   it('GET /api/map works', async () => {
