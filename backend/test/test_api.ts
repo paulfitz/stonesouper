@@ -168,6 +168,19 @@ describe('server', async () => {
     assert.isAbove(result.length, 20);
   });
 
+  it('POST /api/search responds to body.includeTags', async () => {
+    let result: Hit[];
+    result = await search({
+      tags: {
+        'Sector': ['open-password-place']
+      },
+      includeTags: true,
+    });
+    assert.equal(result.length, 17);
+    const tags = result[0].tags!.map(tag => tag.name);
+    assert.includeMembers(tags, ['open-password-place']);
+  });
+
   it('POST /api/search responds to body.group', async () => {
     let groups: Group[];
 

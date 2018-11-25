@@ -216,6 +216,20 @@ class Query {
     this.orders = null;
   }
 
+  select_tags(active) {
+    if (!active) { return; }
+    // throw new Error('Not yet supported');
+    this.joins.push('left join taggings as sel_taggings ' +
+                    'on sel_taggings.taggable_id = organizations.id and ' +
+                    '  sel_taggings.taggable_type = "Organization"');
+    this.joins.push('left join tags as main_tag on sel_taggings.tag_id = main_tag.id');
+    this.joins.push('left join tags as parent_tag on parent_tag.id = main_tag.parent_id');
+    this.joins.push('left join tags as grandparent_tag on grandparent_tag.id = parent_tag.parent_id');
+    this.selects.push('main_tag.name as tags__name, main_tag.id as tags__id');
+    this.selects.push('parent_tag.name as tags__name1, parent_tag.id as tags__parent_id1');
+    this.selects.push('grandparent_tag.name as tags__name2, grandparent_tag.id as tags__id2');
+  }
+
   limit(v) {
     if (!v) { return; }
     // nasty use of wheres
@@ -279,6 +293,7 @@ class Search {
     query.narrow_by_grouping(args.grouping);
     query.select_options(args.options, this.single(args.optionPrefix));
     query.select_map(args.map);
+    query.select_tags(args.includeTags);
     query.limit(args.limit);
     const txts = query.serialize();
     if (args.verbose) {

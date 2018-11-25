@@ -8,11 +8,13 @@ export interface Query {
   country?: string[],
   around?: [number, number, number, 'km'|'mile'],  // lat, long, distance, unit
 
-  group?: boolean,
   map?: 'min'|'normal',
   tag?: string[],
   tags?: {[parent: string]: string[]},
   teams?: string[],
+
+  group?: boolean,
+  includeTags?: boolean,
 }
 
 export interface Coord {
@@ -48,6 +50,15 @@ export interface Org {
   locs: Array<Loc>,
 }
 
+export interface Tag {
+  id: number,
+  name: string,
+  id1: number|null,
+  name1: string|null,
+  id2: number|null,
+  name2: string|null,
+}
+
 export interface Hit {
   id: number,
   name: string,
@@ -64,19 +75,8 @@ export interface Hit {
   created_at: string|null,
   updated_at: string|null,
 
-  // Everything up to this point is per-organization.  After this, we are per-location.
-
-  location_label: string|null,
-  address1: string|null,
-  address2: string|null,
-  city: string|null,
-  state: string|null,
-  zip: string|null,
-  country: string|null,
-  is_primary: number,
-
-  latitude: number|null,
-  longitude: number|null,
+  locs: Loc[],
+  tags?: Tag[],
 }
 
 export interface Group {

@@ -40,8 +40,11 @@ function nested(vals2 /*: Array<{[key: string]: any}>*/) {
         merged.push(o);
         if (o.locs) { o.locs = [o.locs]; }
         else { o.locs = []; }
+        if (o.tags) { o.tags = [o.tags]; }
+        else { o.tags = []; }
       } else {
         if (o.locs) { merged[lid].locs.push(o.locs); }
+        if (o.tags) { merged[lid].tags.push(o.tags); }
       }
     }
     return merged;
