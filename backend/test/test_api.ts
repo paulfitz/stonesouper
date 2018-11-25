@@ -158,6 +158,15 @@ describe('server', async () => {
     assert.equal(result.length, 11);
   });
 
+  it('POST /api/search responds to body.teams', async () => {
+    let result: Hit[];
+    result = await search({ teams: [] });
+    assert.equal(result.length, 0);
+    result = await search({ teams: ['Zing', 'Zong'] });
+    assert.equal(result.length, 0);
+    result = await search({ teams: ['Hack Spots'] });
+    assert.isAbove(result.length, 20);
+  });
 
   it('POST /api/search responds to body.group', async () => {
     let groups: Group[];

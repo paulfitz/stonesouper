@@ -147,7 +147,11 @@ class Query {
 
   narrow_by_dsos(dsos) {
     if (!dsos) { return; }
-    throw new Error('not implemented yet');
+    this.joins.push('inner join data_sharing_orgs_taggables as dt on dt.taggable_id = organizations.id and dt.taggable_type = "Organization"')
+    this.joins.push('inner join data_sharing_orgs on dt.data_sharing_org_id = data_sharing_orgs.id')
+    const qs = dsos.map(x => '?').join(',');
+    this.wheres.push(`data_sharing_orgs.name in (${qs})`);
+    this.params.push(...dsos);
   }
 
   narrow_by_distance(around) {
@@ -271,7 +275,7 @@ class Search {
     query.narrow_by_geo('country', args.country);
     query.narrow_by_tags(args.tag);
     query.narrow_by_many_tags(args.tags);
-    query.narrow_by_dsos(args.dsos);
+    query.narrow_by_dsos(args.teams);
     query.narrow_by_grouping(args.grouping);
     query.select_options(args.options, this.single(args.optionPrefix));
     query.select_map(args.map);

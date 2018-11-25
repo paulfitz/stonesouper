@@ -12,6 +12,7 @@ export interface Query {
   map?: 'min'|'normal',
   tag?: string[],
   tags?: {[parent: string]: string[]},
+  teams?: string[],
 }
 
 export interface Coord {

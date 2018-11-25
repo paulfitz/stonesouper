@@ -1,3 +1,5 @@
+# A few transforms used by _sheetsite.yml
+
 def add_demo_sectors(data, params):
     col = 'Wifi Password'
     for table in data.tables_with_columns(col):

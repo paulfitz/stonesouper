@@ -128,6 +128,9 @@ function startServer(filename, port, verbose) {
 
   api.use(function(err, req, res, next) {
     const code = err.status || 500;
+    if (code === 500) {
+      console.error(err);
+    }
     res.status(code).json({error: err.message, code});
   });
 
