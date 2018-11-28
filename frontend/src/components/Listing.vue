@@ -11,16 +11,16 @@
 
         {{ listing.org.description }}
 
-      <div v-for="result in listing.locs">
+      <div v-for="result in listing.org.locs">
         <div class="more">
-          {{ result.physical_address1 }}
-          {{ result.physical_address2 }}
-          <br v-if="result.physical_address1 || result.physical_address2" />
-          {{ result.physical_city }}
-          {{ result.physical_state }}
-          {{ result.physical_zip }}
-          <br v-if="result.physical_city || result.physical_state || result.physical_zip" />
-          {{ result.physical_country }}
+          {{ result.address1 }}
+          {{ result.address2 }}
+          <br v-if="result.address1 || result.address2" />
+          {{ result.city }}
+          {{ result.state }}
+          {{ result.zip }}
+          <br v-if="result.city || result.state || result.zip" />
+          {{ result.country }}
         </div>
 
       </div>
@@ -48,7 +48,7 @@ export default class Listing extends Vue {
   }
   public async created() {
     console.log(this.$route.params.id);
-    const x = await axios.get(`/api/org/${this.$route.params.id}`, {responseType: 'json'});
+    const x = await axios.get(`/api/orgs/${this.$route.params.id}`, {responseType: 'json'});
     this.replaceListing(x.data);
   }
 }

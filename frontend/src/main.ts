@@ -4,6 +4,7 @@ import Small from './components/Small.vue';
 import Home from './components/Home.vue';
 import Browser from './components/Browser.vue';
 import Listing from './components/Listing.vue';
+import Test from './components/Test.vue';
 
 import BootstrapVue from 'bootstrap-vue';
 import {VueMasonryPlugin} from 'vue-masonry';
@@ -23,6 +24,7 @@ const routes = [
   { path: '/about', component: Small },
   { path: '/browse', component: Home },
   { path: '/org/:id', component: Listing },
+  { path: '/test', component: Test },
 ];
 
 const router = new Router({

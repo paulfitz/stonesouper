@@ -1,6 +1,9 @@
 <template>
   <div class="form-inline searchbar">
   <div class="form-group">
+    <SimpleFilter filterKey="city" />
+    <SimpleFilter filterKey="state" />
+    <SimpleFilter filterKey="country" />
     <div class="form-group">
       <label for="keyword" class="mr-sm-2 form-control-lg">Search for an organization</label>
       <input type="text"
@@ -9,7 +12,8 @@
              placeholder="Keywords"
              v-on:click.stop="1"
              v-model="query">
-      <button v-on:click="wipe()" class="btn btn-primary mb-2 form-control-lg">Map</button>
+      <button v-on:click="search()" v-on:click.stop="1" class="btn btn-primary mb-2 form-control-lg">Search</button>
+      <button v-on:click="wipe()" class="btn mb-2 form-control-lg">Map</button>
     </div>
   </div>
   </div>
@@ -20,11 +24,18 @@
   import {Getter, Action} from 'vuex-class';
   import axios from 'axios';
 import {mapActions} from 'vuex';
+import SimpleFilter from './SimpleFilter.vue';
 
-@Component
+@Component({
+  components: {
+    SimpleFilter,
+  },
+})
+
 export default class SearchBar extends Vue {
   @Prop({default: ''}) public keyword!: string;
   // @Prop({default: null}) public results!: any;
+  @Getter filters!: {[key: string]: string[]};
   @Getter listings!: any[];
   @Getter nlistings!: number;
   @Getter("query") iquery!: string;
@@ -34,17 +45,40 @@ export default class SearchBar extends Vue {
     super();
   }
 
+  public async search() {
+    return this.go(this.query);
+  }
+
+  public async go(value: string) {
+    console.log("SEARCHING FOR", value);
+    try {
+      const params: any = {
+        limit: 50
+      };
+      if (value !== '') {
+        params.key = [value + "*"];
+      }
+      const filt = this.filters;
+      for (const key of Object.keys(filt)) {
+        if (filt[key].length > 0) {
+          params[key] = filt[key];
+        }
+      }
+      const x = await axios.post(`/api/map`, params, {responseType: 'json'});
+      console.log(`GOT ${x.data.length} listings!`);
+      this.replaceListings(x.data);
+      
+      const x2 = await axios.post('/api/country');
+      console.log("COUNTRIES", x2.data.options);
+    } catch(e) {
+      console.log("ERROR", e);
+    }
+  }
+
   @Watch('query')
   public async onPropertyChanged(value: string, oldValue: string) {
     if (value.length > 2) {
-      console.log("SEARCHING FOR", value);
-      try {
-        const x = await axios.post(`/api/search`, {key: [value + "*"], limit: 50}, {responseType: 'json'});
-        console.log(`GOT ${x.data.length} listings!`);
-        this.replaceListings(x.data);
-      } catch(e) {
-        console.log("ERROR", e);
-      }
+      await this.go(value);
     }
   }
 

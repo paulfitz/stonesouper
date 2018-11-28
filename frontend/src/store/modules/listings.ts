@@ -3,6 +3,11 @@ import {ActionContext} from 'vuex';
 export class State {
   public listings: any[] = [];
   public query: string = '';
+  public filters: {[key: string]: string[]} = {
+    city: [],
+    country: [],
+    state: [],
+  };
 }
 
 const getters = {
@@ -17,6 +22,10 @@ const getters = {
   query(state: State): string {
     return state.query;
   },
+
+  filters(state: State): {[key: string]: string[]} {
+    return state.filters;
+  },
 };
 
 const mutations = {
@@ -28,6 +37,14 @@ const mutations = {
   replaceQuery(state: State, query: string) {
     state.query = query;
   },
+
+  setFilter(state: State, payload: {key: string, values: string[]}) {
+    state.filters[payload.key] = payload.values;
+  },
+
+  removeFilter(state: State, key: string) {
+    delete state.filters[key];
+  },
 };
 
 const actions = {
@@ -36,6 +53,9 @@ const actions = {
   },
   replaceQuery(store: ActionContext<State, any>, query: string) {
     store.commit('replaceQuery', query);
+  },
+  setFilter(store: ActionContext<State, any>, payload: {key: string, values: string[]}) {
+    store.commit('setFilter', payload);
   },
 };
 

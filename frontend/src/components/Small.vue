@@ -1,5 +1,5 @@
 <template>
   <div>
-    I like to move it move it
+    Placeholder
   </div>
 </template>

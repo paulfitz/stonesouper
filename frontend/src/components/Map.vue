@@ -23,9 +23,10 @@ function escapeHtml(unsafe: string) {
  }
 
 function go(base: any, ndata: any[]|null) {
+  console.log(ndata);
   const data = ndata || [
-    { latitude: 60, longitude: 50, name: 'zing1' },
-    { latitude: 70, longitude: 60, name: 'zing2' },
+    { lat: 60, lng: 50, name: 'zing1' },
+    { lat: 70, lng: 60, name: 'zing2' },
   ];
   if (!data) {
     console.log("No table found");
@@ -45,12 +46,13 @@ function go(base: any, ndata: any[]|null) {
   const markers = L.markerClusterGroup();
   const points = [];
   for (let i = 0; i < data.length; i++) {
-    const pt = new L.LatLng(data[i].latitude, data[i].longitude);
+    if (data[i].lat === undefined) { continue; }
+    const pt = new L.LatLng(data[i].lat, data[i].lng);
     const title = data[i].name;
     const marker = L.marker(pt, { title });
     points.push(pt);
     // oh gosh this is so painful - there must be an easier way to set up a link programmatically.
-    marker.bindPopup("<a class='poplink' data-id='" + data[i].id + "' href='#'>" + escapeHtml(title) + "</a>")
+    marker.bindPopup("<a class='poplink' data-id='" + data[i].org_id + "' href='#'>" + escapeHtml(title) + "</a>")
       .on('popupopen', function (popup: any) {
         const classname = document.getElementsByClassName("poplink");
         var myFunction = function(this: any) {

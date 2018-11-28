@@ -1,7 +1,7 @@
 <template>
   <div v-masonry item-selector=".listing" fit-width="true" class="listings">
       <div v-masonry-tile class="listing" v-for="result in listings" v-on:click.stop="1">
-        <h4><router-link :to="'/org/' + result.id">{{result.name}}</router-link></h4> 
+        <h4><router-link :to="'/org/' + result.org_id">{{result.name}}</router-link></h4> 
         <div class="more">
           {{ result.physical_address1 }}
           {{ result.physical_address2 }}
