@@ -11,10 +11,11 @@ export interface Query {
   map?: 'min'|'normal',
   tag?: string[],
   tags?: {[parent: string]: string[]},
-  teams?: string[],
+  team?: string[],
 
   group?: boolean,
   includeTags?: boolean,
+  parents?: string[],
 }
 
 export interface Coord {

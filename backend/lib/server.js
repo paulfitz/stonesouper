@@ -115,11 +115,10 @@ function startServer(filename, port, verbose) {
     res.json({ orgs, org });
   });
 
-  for (const key of ['city', 'state', 'country', 'zip', 'tag']) {
+  for (const key of ['city', 'state', 'country', 'zip', 'tag', 'tag_parent', 'team']) {
     getOrPost(api, `/${key}`, (req, res) => {
       const options = db.options(key, req.body);
-      const result = (key === 'tag') ? options : options.map(v => v[key]);
-      res.json({ name: key, options: result });
+      res.json({ name: key, options });
     });
   }
 

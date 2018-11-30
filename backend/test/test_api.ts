@@ -27,6 +27,10 @@ async function searchGroup(query: Query): Promise<Group[]> {
   return result.data;
 }
 
+function namify(lst: {name: string}[]) {
+  return lst.map(item => item.name);
+}
+
 describe('server', async () => {
 
   before(async () => {
@@ -158,13 +162,13 @@ describe('server', async () => {
     assert.equal(result.length, 11);
   });
 
-  it('POST /api/search responds to body.teams', async () => {
+  it('POST /api/search responds to body.team', async () => {
     let result: Hit[];
-    result = await search({ teams: [] });
+    result = await search({ team: [] });
     assert.equal(result.length, 0);
-    result = await search({ teams: ['Zing', 'Zong'] });
+    result = await search({ team: ['Zing', 'Zong'] });
     assert.equal(result.length, 0);
-    result = await search({ teams: ['Hack Spots'] });
+    result = await search({ team: ['Hack Spots'] });
     assert.isAbove(result.length, 20);
   });
 
@@ -216,54 +220,73 @@ describe('server', async () => {
     let result = await axios.post(base + '/api/city', {
       state: ['NY'],
     });
-    assert.deepEqual(result.data.options, ['Astoria', 'Brooklyn', 'Ithaca', 'New York']);
+    assert.deepEqual(namify(result.data.options), ['Astoria', 'Brooklyn', 'Ithaca', 'New York']);
     result = await axios.post(base + '/api/city', {
       state: ['NY'],
       optionPrefix: 'i'
     });
-    assert.deepEqual(result.data.options, ['Ithaca']);
+    assert.deepEqual(namify(result.data.options), ['Ithaca']);
   });
 
   it('GET /api/city works', async () => {
     let result = await axios.get(base + '/api/city?state=NY');
-    assert.deepEqual(result.data.options, ['Astoria', 'Brooklyn', 'Ithaca', 'New York']);
+    assert.deepEqual(namify(result.data.options), ['Astoria', 'Brooklyn', 'Ithaca', 'New York']);
     result = await axios.get(base + '/api/city?state=NY&optionPrefix=i');
-    assert.deepEqual(result.data.options, ['Ithaca']);
+    assert.deepEqual(namify(result.data.options), ['Ithaca']);
   });
 
   it('POST /api/state works', async () => {
     let result = await axios.post(base + '/api/state', {
       country: ['USA'],
     });
-    assert.includeMembers(result.data.options, ['AZ', 'CA', 'OR']);
+    assert.includeMembers(namify(result.data.options), ['AZ', 'CA', 'OR']);
     result = await axios.post(base + '/api/state', {
       country: ['USA'],
       optionPrefix: 'm'
     });
-    assert.deepEqual(result.data.options, ['MA', 'ME', 'MN']);
+    assert.deepEqual(namify(result.data.options), ['MA', 'ME', 'MN']);
   });
 
   it('POST /api/country works', async () => {
     let result = await axios.post(base + '/api/country', {
     });
-    assert.includeMembers(result.data.options, ['Australia', 'Japan']);
+    assert.includeMembers(namify(result.data.options), ['Australia', 'Japan']);
     result = await axios.post(base + '/api/country', {
       optionPrefix: 'i'
     });
-    assert.deepEqual(result.data.options, ['Indonesia', 'Ireland', 'Italy']);
+    assert.deepEqual(namify(result.data.options), ['Indonesia', 'Ireland', 'Italy']);
   });
 
   it('POST /api/zip works', async () => {
     let result = await axios.post(base + '/api/zip', {
     });
-    assert.includeMembers(result.data.options, ['94115', 'H2V 1Y1']);
+    assert.includeMembers(namify(result.data.options), ['94115', 'H2V 1Y1']);
   });
 
   it('POST /api/tag works', async () => {
     let result = await axios.post(base + '/api/tag', {
     });
-    const tags = result.data.options.map((tag: any) => tag.name);
-    assert.includeMembers(tags, ['hack spot']);
+    assert.deepEqual(namify(result.data.options),
+                     ['hack spot', 'open-password-place', 'wacky']);
+  });
+
+  it('POST /api/tag can be filtered by parent', async () => {
+    let result = await axios.post(base + '/api/tag', {
+      parents: ['Sector']
+    });
+    assert.deepEqual(namify(result.data.options), ['open-password-place']);
+  });
+
+  it('POST /api/tag_parent works', async () => {
+    let result = await axios.post(base + '/api/tag_parent', {
+    });
+    assert.includeMembers(namify(result.data.options), ['LegalStructure', 'Sector']);
+  });
+
+  it('POST /api/team works', async () => {
+    let result = await axios.post(base + '/api/team', {
+    });
+    assert.includeMembers(namify(result.data.options), ['Hack Spots']);
   });
 
   it('GET /api/map works', async () => {

@@ -55,6 +55,7 @@ class Query {
     this.limits = null;
     this.orders = null;
     this.have_tags = {};
+    this.have_dsos = false;
   }
 
   narrow_by_term(term) {
@@ -145,10 +146,16 @@ class Query {
     }
   }
 
+  join_dsos() {
+    if (this.have_dsos) { return; }
+    this.joins.push('inner join data_sharing_orgs_taggables as dt on dt.taggable_id = organizations.id and dt.taggable_type = "Organization"');
+    this.joins.push('inner join data_sharing_orgs on dt.data_sharing_org_id = data_sharing_orgs.id');
+    this.have_dsos = true;
+  }
+
   narrow_by_dsos(dsos) {
     if (!dsos) { return; }
-    this.joins.push('inner join data_sharing_orgs_taggables as dt on dt.taggable_id = organizations.id and dt.taggable_type = "Organization"')
-    this.joins.push('inner join data_sharing_orgs on dt.data_sharing_org_id = data_sharing_orgs.id')
+    this.join_dsos();
     const qs = dsos.map(x => '?').join(',');
     this.wheres.push(`data_sharing_orgs.name in (${qs})`);
     this.params.push(...dsos);
@@ -172,25 +179,54 @@ class Query {
     this.params.push(grouping);
   }
 
-  select_options(key, prefix) {
+  select_options(key, prefix, args) {
     if (!key) { return; }
-    if (key === 'tag') { this.select_tag_options(prefix); }
+    if (key === 'tag') { this.select_tag_options(prefix, args); }
+    else if (key === 'tag_parent') { this.select_tag_parent_options(prefix); }
+    else if (key === 'team') { this.select_team_options(prefix); }
     else { this.select_loc_options(key, prefix); }
   }
 
-  select_tag_options(prefix) {
+  select_tag_options(prefix, args) {
     this.selects = ['distinct tags.id, tags.name'];
     this.orders = 'order by tags.name';
     this.join_tags("");
+    if (args.parents) {
+      this.joins.push('inner join tags as tags_parent on tags.parent_id = tags_parent.id')
+      const ps = args.parents.map(x => '?').join(',');
+      this.wheres.push(`tags_parent.name in (${ps})`);
+      this.params.push(...args.parents);
+    }
     if (prefix && prefix.length > 0) {
       this.wheres.push("tags.name like ? collate nocase");
       this.params.push(prefix + '%');
     }
   }
 
+  select_tag_parent_options(prefix) {
+    this.selects = ['distinct tags_parent.id as id, tags_parent.name'];
+    this.orders = 'order by tags_parent.name';
+    this.join_tags("");
+    this.joins.push('inner join tags as tags_parent on tags.parent_id = tags_parent.id')
+    if (prefix && prefix.length > 0) {
+      this.wheres.push("tags_parent.name like ? collate nocase");
+      this.params.push(prefix + '%');
+    }
+  }
+
+  select_team_options(prefix) {
+    this.selects = ['distinct data_sharing_orgs.id as id, data_sharing_orgs.name'];
+    this.orders = 'order by data_sharing_orgs.name';
+    this.join_dsos();
+    if (prefix && prefix.length > 0) {
+      this.wheres.push("data_sharing_orgs.name like ? collate nocase");
+      this.params.push(prefix + '%');
+    }
+  }
+
   select_loc_options(key, prefix) {
     if (!key) { return; }
-    this.selects = ['distinct locations.physical_' + key + ' as ' + key];
+    this.selects = ['distinct locations.physical_' + key + ' as name'];
     this.orders = 'order by locations.physical_' + key;
     if (prefix && prefix.length > 0) {
       this.wheres.push('locations.physical_' + key + " like ? collate nocase");
@@ -287,11 +323,12 @@ class Search {
     query.narrow_by_geo('city', this.enlist(args.city));
     query.narrow_by_geo('state', args.state);
     query.narrow_by_geo('country', args.country);
+    query.narrow_by_geo('zip', args.zip);
     query.narrow_by_tags(args.tag);
     query.narrow_by_many_tags(args.tags);
-    query.narrow_by_dsos(args.teams);
+    query.narrow_by_dsos(args.team);
     query.narrow_by_grouping(args.grouping);
-    query.select_options(args.options, this.single(args.optionPrefix));
+    query.select_options(args.options, this.single(args.optionPrefix), args);
     query.select_map(args.map);
     query.select_tags(args.includeTags);
     query.limit(args.limit);
@@ -330,7 +367,8 @@ class Search {
   }
 
   options(key, params) {
-    if (['city', 'state', 'country', 'zip', 'tag'].indexOf(key) < 0) { return []; }
+    if (['city', 'state', 'country', 'zip', 'tag',
+         'tag_parent', 'team'].indexOf(key) < 0) { return []; }
     params = params || {};
     params.options = key;
     return this.search(params);

@@ -6,7 +6,13 @@ export class State {
   public filters: {[key: string]: string[]} = {
     city: [],
     country: [],
+    tag: [],
+    team: [],
     state: [],
+    zip: [],
+
+    sector_: [],
+    structure_: [],
   };
 }
 

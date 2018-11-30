@@ -1,11 +1,17 @@
 <template>
-  <div class="form-inline searchbar">
+  <div class="searchbar">
   <div class="form-group">
-    <SimpleFilter filterKey="city" />
-    <SimpleFilter filterKey="state" />
-    <SimpleFilter filterKey="country" />
-    <div class="form-group">
-      <label for="keyword" class="mr-sm-2 form-control-lg">Search for an organization</label>
+    <div class="form-group form-inline">
+      <SimpleFilter filterKey="city" />
+      <SimpleFilter filterKey="state" />
+      <SimpleFilter filterKey="zip" />
+      <SimpleFilter filterKey="country" />
+      <SimpleFilter filterKey="tag" />
+      <SimpleFilter filterKey="team" />
+      <SimpleFilter filterKey="sector_Sector" />
+      <SimpleFilter filterKey="structure_LegalStructure" />
+    </div>
+    <div class="form-group form-inline">
       <input type="text"
              id="keyword"
              class="form-control form-control-lg mr-sm-2 mb-2"
@@ -13,7 +19,6 @@
              v-on:click.stop="1"
              v-model="query">
       <button v-on:click="search()" v-on:click.stop="1" class="btn btn-primary mb-2 form-control-lg">Search</button>
-      <button v-on:click="wipe()" class="btn mb-2 form-control-lg">Map</button>
     </div>
   </div>
   </div>
@@ -25,6 +30,7 @@
   import axios from 'axios';
 import {mapActions} from 'vuex';
 import SimpleFilter from './SimpleFilter.vue';
+import {completeQuery} from '../filter';
 
 @Component({
   components: {
@@ -53,17 +59,12 @@ export default class SearchBar extends Vue {
     console.log("SEARCHING FOR", value);
     try {
       const params: any = {
-        limit: 50
+        limit: 5000
       };
       if (value !== '') {
         params.key = [value + "*"];
       }
-      const filt = this.filters;
-      for (const key of Object.keys(filt)) {
-        if (filt[key].length > 0) {
-          params[key] = filt[key];
-        }
-      }
+      completeQuery(params, this.filters);
       const x = await axios.post(`/api/map`, params, {responseType: 'json'});
       console.log(`GOT ${x.data.length} listings!`);
       this.replaceListings(x.data);
