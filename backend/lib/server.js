@@ -122,6 +122,10 @@ function startServer(filename, port, verbose) {
     });
   }
 
+  getOrPost(api, '/autocomplete', (req, res) => {
+    res.json(db.autocomplete(req.body));
+  });
+
   api.use(function(req, res) {
     const err = new Error("Not found");
     err.status = 404;

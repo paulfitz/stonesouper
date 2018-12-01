@@ -11,9 +11,11 @@ export class State {
     state: [],
     zip: [],
 
-    sector_: [],
-    structure_: [],
+    sector_Sector: [],
+    legal_LegalStructure: [],
+    type_OrgType: [],
   };
+  public queryCount: number = 0;
 }
 
 const getters = {
@@ -32,6 +34,10 @@ const getters = {
   filters(state: State): {[key: string]: string[]} {
     return state.filters;
   },
+
+  queryCount(state: State): number {
+    return state.queryCount;
+  }
 };
 
 const mutations = {
@@ -51,6 +57,10 @@ const mutations = {
   removeFilter(state: State, key: string) {
     delete state.filters[key];
   },
+
+  incQueryCount(state: State, offset: number) {
+    state.queryCount += offset;
+  }
 };
 
 const actions = {
@@ -62,6 +72,9 @@ const actions = {
   },
   setFilter(store: ActionContext<State, any>, payload: {key: string, values: string[]}) {
     store.commit('setFilter', payload);
+  },
+  incQueryCount(store: ActionContext<State, any>, offset: number) {
+    store.commit('incQueryCount', offset);
   },
 };
 

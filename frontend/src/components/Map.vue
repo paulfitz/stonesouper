@@ -46,7 +46,8 @@ function go(base: any, ndata: any[]|null) {
   const markers = L.markerClusterGroup();
   const points = [];
   for (let i = 0; i < data.length; i++) {
-    if (data[i].lat === undefined) { continue; }
+    if (data[i].lat === undefined || data[i].lat === null) { continue; }
+    if (data[i].lat === 0 && data[i].lng === 0) { continue; }
     const pt = new L.LatLng(data[i].lat, data[i].lng);
     const title = data[i].name;
     const marker = L.marker(pt, { title });
@@ -67,6 +68,10 @@ function go(base: any, ndata: any[]|null) {
   map.addLayer(markers);
   if (points.length > 1) {
     map.fitBounds(new L.LatLngBounds(points));
+  } else if (points.length === 1) {
+    map.setView(points[0], 8);
+  } else {
+    map.fitWorld();
   }
 }
 

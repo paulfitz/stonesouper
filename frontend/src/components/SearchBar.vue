@@ -9,7 +9,8 @@
       <SimpleFilter filterKey="tag" />
       <SimpleFilter filterKey="team" />
       <SimpleFilter filterKey="sector_Sector" />
-      <SimpleFilter filterKey="structure_LegalStructure" />
+      <SimpleFilter filterKey="legal_LegalStructure" />
+      <SimpleFilter filterKey="type_OrgType" />
     </div>
     <div class="form-group form-inline">
       <input type="text"
@@ -45,6 +46,7 @@ export default class SearchBar extends Vue {
   @Getter listings!: any[];
   @Getter nlistings!: number;
   @Getter("query") iquery!: string;
+  @Getter("queryCount") queryCount!: string;
   @Action('replaceListings') replaceListings!: (x: any[]) => void;
   @Action('replaceQuery') replaceQuery!: (x: string) => void;
   constructor() {
@@ -53,6 +55,11 @@ export default class SearchBar extends Vue {
 
   public async search() {
     return this.go(this.query);
+  }
+
+  @Watch('queryCount')
+  public async watchQueryCount() {
+    return this.search();
   }
 
   public async go(value: string) {
@@ -65,12 +72,10 @@ export default class SearchBar extends Vue {
         params.key = [value + "*"];
       }
       completeQuery(params, this.filters);
+      console.log("PARAMS", params);
       const x = await axios.post(`/api/map`, params, {responseType: 'json'});
       console.log(`GOT ${x.data.length} listings!`);
       this.replaceListings(x.data);
-      
-      const x2 = await axios.post('/api/country');
-      console.log("COUNTRIES", x2.data.options);
     } catch(e) {
       console.log("ERROR", e);
     }

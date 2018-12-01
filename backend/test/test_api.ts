@@ -302,4 +302,10 @@ describe('server', async () => {
     assert.includeMembers(Object.keys(result.data), ['error', 'code']);
     assert.equal(result.data.code, 404);
   });
+
+  it.skip('GET /api/autocomplete works', async () => {
+    const result = await axios.get(base + '/api/autocomplete?key=dekum');
+    console.log(result.data);
+  });
+
 });

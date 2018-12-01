@@ -1,6 +1,6 @@
 <template>
   <div class="form-group">
-    <multiselect v-model="mvalue" :placeholder="filterKey.split('_')[0]" :options="moptions" :multiple="true" :loading="loading" @search-change="find" @open="open" @input="input"></multiselect>
+    <multiselect :value="initialValue" :placeholder="filterKey.split('_')[0]" :options="moptions" :multiple="true" :loading="loading" @search-change="find" @open="open" @input="input"></multiselect>
   </div>
 </template>
 
@@ -21,6 +21,7 @@ export default class SimpleFilter extends Vue {
   @Getter filters!: {[key: string]: string[]};
   @Getter query!: string;
   @Action('setFilter') setFilter!: (payload: {key: string, values: string[]}) => void;
+  @Action('incQueryCount') incQueryCount!: (offset: number) => void;
   @Prop({default: ''}) public filterKey!: string;
   @Prop({default: ''}) public parent!: string;
 
@@ -32,6 +33,10 @@ export default class SimpleFilter extends Vue {
     this.setFilter({key: this.filterKey, values: ['one', 'two']});
   }
 
+  public get initialValue() {
+    return this.filters[this.filterKey];
+  }
+
   public async open() {
     return this.find("");
   }
@@ -39,6 +44,7 @@ export default class SimpleFilter extends Vue {
   public input(val: any) {
     console.log("INPUT", val);
     this.setFilter({key: this.filterKey, values: val});
+    this.incQueryCount(1);
   }
 
   public async find(query: string) {

@@ -190,6 +190,7 @@ class Query {
   select_tag_options(prefix, args) {
     this.selects = ['distinct tags.id, tags.name'];
     this.orders = 'order by tags.name';
+    this.wheres.push('tags.name <> "" and tags.name is not null');
     this.join_tags("");
     if (args.parents) {
       this.joins.push('inner join tags as tags_parent on tags.parent_id = tags_parent.id')
@@ -227,6 +228,7 @@ class Query {
   select_loc_options(key, prefix) {
     if (!key) { return; }
     this.selects = ['distinct locations.physical_' + key + ' as name'];
+    this.wheres.push('locations.physical_' + key + ' <> "" and locations.physical_' + key + ' is not null');
     this.orders = 'order by locations.physical_' + key;
     if (prefix && prefix.length > 0) {
       this.wheres.push('locations.physical_' + key + " like ? collate nocase");
@@ -282,13 +284,17 @@ class Query {
       txts.push("where");
       txts.push(this.wheres.join(' and '));
     }
-    if (this.limits) {
-      txts.push(this.limits);
-    }
     if (this.orders) {
       txts.push(this.orders);
     }
-    return txts
+    if (this.limits) {
+      txts.push(this.limits);
+    }
+    return txts;
+  }
+
+  text() {
+    return this.serialize().join(' ');
   }
 }
 
@@ -315,7 +321,7 @@ class Search {
     return arg[0];
   }
 
-  search(args) {
+  compile(args) {
     const query = new Query();
     query.narrow_by_term(args.key);
     query.select_locations();
@@ -332,14 +338,19 @@ class Search {
     query.select_map(args.map);
     query.select_tags(args.includeTags);
     query.limit(args.limit);
-    const txts = query.serialize();
+    return query;
+  }
+
+  search(args) {
+    const query = this.compile(args);
     if (args.verbose) {
+      const txts = query.serialize();
       for (const txt of txts) {
         console.log(txt);
       }
       console.log("   ", query.params);
     }
-    return this.db.prepare(txts.join(' ')).all(query.params);
+    return this.db.prepare(query.text()).all(query.params);
   }
 
   map(args, flavor) {
@@ -372,6 +383,23 @@ class Search {
     params = params || {};
     params.options = key;
     return this.search(params);
+  }
+
+  autocomplete(params, limit) {
+    if (!params.key) { return []; }
+    if (params.key.length !== 1) { return []; }
+    const key = params.key[0];
+    params = params || {};
+    const fullLimit = limit;
+    params.limit = 10;
+    params.key = [String(key) + '*'];
+    params.verbose = true;
+    const v1 = this.search(params);
+    params.key = null;
+    params.options = 'tag';
+    params.optionPrefix = key;
+    const v2 = this.search(params);
+    return [...v1, ...v2];
   }
 }
 
