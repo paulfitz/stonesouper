@@ -1,6 +1,6 @@
 <template>
   <div class="form-group" id="qb">
-    <multiselect placeholder="Keywords" v-model="value" :options="moptions" @input="input" v-on:click.stop="1" @search-change="find" :custom-label="label" :showNoResults="false"></multiselect>
+    <multiselect placeholder="Keywords" v-model="value" :options="moptions" @input="input" v-on:click.stop="1" @search-change="find" :custom-label="label" :showNoResults="false" @open="open"></multiselect>
   </div>
 </template>
 
@@ -29,6 +29,8 @@ export default class QueryBox extends Vue {
     console.log("INPUT", val.name, val.type);
     if (val.type !== 'org') {
       // should modify filter
+      this.value = "";
+      this.replaceQuery("");
       console.log("setting filter");
       this.setFilter({key: val.type, values: [...new Set([...this.filters[val.type], val.name])]});
       console.log("FILTERS NOW", this.filters);
@@ -46,6 +48,10 @@ export default class QueryBox extends Vue {
 
   public label(v: any) {
     return `${v.name} (${v.type})`;
+  }
+
+  public async open() {
+    this.find("");
   }
 }
 </script>

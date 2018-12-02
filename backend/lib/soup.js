@@ -387,6 +387,7 @@ class Search {
 
   addType(type, lst) {
     lst.forEach(x => x.type = type);
+    lst.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return lst;
   }
 
@@ -396,6 +397,13 @@ class Search {
     const key = params.key[0];
     params = params || {};
     const fullLimit = limit;
+
+    if (key === "") {
+      params.key = null;
+      params.optionPrefix = key;
+      params.options = 'team';
+      return this.addType('team', this.search(params));
+    }
 
     const results = [];
     params.limit = 3;
