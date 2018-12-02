@@ -8,7 +8,7 @@
 import axios from 'axios';
 import Multiselect from 'vue-multiselect'
 import {Getter, Action} from 'vuex-class';
-import {Component, Prop, Vue} from 'vue-property-decorator';
+import {Component, Prop, Vue, Watch} from 'vue-property-decorator';
 import {completeQuery} from '../filter';
 
 @Component({
@@ -18,23 +18,38 @@ import {completeQuery} from '../filter';
 })
 
 export default class SimpleFilter extends Vue {
-  @Getter filters!: {[key: string]: string[]};
+  @Getter('filters') filters!: {[key: string]: string[]};
+  @Getter('queryCount') queryCount!: number;
+  @Getter('filterCount') filterCount!: number;
   @Getter query!: string;
   @Action('setFilter') setFilter!: (payload: {key: string, values: string[]}) => void;
   @Action('incQueryCount') incQueryCount!: (offset: number) => void;
   @Prop({default: ''}) public filterKey!: string;
   @Prop({default: ''}) public parent!: string;
+  public initialValue: string[] = [];
 
-  public mvalue: string|null = null;
   public moptions: string[] = [];
   public loading: boolean = false;
+
+  public mounted() {
+    console.log("MOUNTING");
+    this.initialValue = this.filters[this.filterKey];
+  }
 
   public update() {
     this.setFilter({key: this.filterKey, values: ['one', 'two']});
   }
 
-  public get initialValue() {
-    return this.filters[this.filterKey];
+  @Watch('filterCount')
+  public updateFilters() {
+    const nxt = this.filters[this.filterKey];
+    const v1 = JSON.stringify(this.initialValue);
+    const v2 = JSON.stringify(nxt);
+    if (v1 !== v2) {
+      console.log("UPDATING FILTERS");
+      this.initialValue = nxt;
+      this.incQueryCount(1);
+    }
   }
 
   public async open() {
@@ -43,6 +58,7 @@ export default class SimpleFilter extends Vue {
 
   public input(val: any) {
     console.log("INPUT", val);
+    this.initialValue = val;
     this.setFilter({key: this.filterKey, values: val});
     this.incQueryCount(1);
   }

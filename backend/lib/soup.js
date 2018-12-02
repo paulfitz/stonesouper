@@ -385,21 +385,38 @@ class Search {
     return this.search(params);
   }
 
+  addType(type, lst) {
+    lst.forEach(x => x.type = type);
+    return lst;
+  }
+
   autocomplete(params, limit) {
     if (!params.key) { return []; }
     if (params.key.length !== 1) { return []; }
     const key = params.key[0];
     params = params || {};
     const fullLimit = limit;
-    params.limit = 10;
-    params.key = [String(key) + '*'];
-    params.verbose = true;
-    const v1 = this.search(params);
+
+    const results = [];
+    params.limit = 3;
+
     params.key = null;
-    params.options = 'tag';
     params.optionPrefix = key;
-    const v2 = this.search(params);
-    return [...v1, ...v2];
+    for (const option of ['team', 'tag', 'city', 'state', 'country', 'zip']) {
+      params.options = option;
+      const v2 = this.search(params);
+      results.push(...this.addType(option, this.search(params)));
+    }
+    params.options = null;
+    params.optionPrefix = null;
+
+    params.key = [String(key) + '*'];
+    params.map = 'min';
+    results.push(...this.addType('org', this.search(params)));
+    params.key = null;
+    params.map = null;
+
+    return results;
   }
 }
 

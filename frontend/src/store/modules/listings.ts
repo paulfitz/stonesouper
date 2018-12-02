@@ -16,6 +16,7 @@ export class State {
     type_OrgType: [],
   };
   public queryCount: number = 0;
+  public filterCount: number = 0;
 }
 
 const getters = {
@@ -37,7 +38,11 @@ const getters = {
 
   queryCount(state: State): number {
     return state.queryCount;
-  }
+  },
+
+  filterCount(state: State): number {
+    return state.filterCount;
+  },
 };
 
 const mutations = {
@@ -60,7 +65,11 @@ const mutations = {
 
   incQueryCount(state: State, offset: number) {
     state.queryCount += offset;
-  }
+  },
+
+  incFilterCount(state: State, offset: number) {
+    state.filterCount += offset;
+  },
 };
 
 const actions = {
@@ -75,6 +84,9 @@ const actions = {
   },
   incQueryCount(store: ActionContext<State, any>, offset: number) {
     store.commit('incQueryCount', offset);
+  },
+  incFilterCount(store: ActionContext<State, any>, offset: number) {
+    store.commit('incFilterCount', offset);
   },
 };
 

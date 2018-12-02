@@ -303,9 +303,10 @@ describe('server', async () => {
     assert.equal(result.data.code, 404);
   });
 
-  it.skip('GET /api/autocomplete works', async () => {
-    const result = await axios.get(base + '/api/autocomplete?key=dekum');
-    console.log(result.data);
+  it('GET /api/autocomplete works', async () => {
+    const result = await axios.get(base + '/api/autocomplete?key=o');
+    const types = result.data.map((x: any) => x.type);
+    assert.includeMembers(types, ['org', 'tag', 'city', 'state']);
   });
 
 });

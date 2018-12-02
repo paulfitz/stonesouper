@@ -13,12 +13,7 @@
       <SimpleFilter filterKey="type_OrgType" />
     </div>
     <div class="form-group form-inline">
-      <input type="text"
-             id="keyword"
-             class="form-control form-control-lg mr-sm-2 mb-2"
-             placeholder="Keywords"
-             v-on:click.stop="1"
-             v-model="query">
+      <QueryBox />
       <button v-on:click="search()" v-on:click.stop="1" class="btn btn-primary mb-2 form-control-lg">Search</button>
     </div>
   </div>
@@ -31,11 +26,13 @@
   import axios from 'axios';
 import {mapActions} from 'vuex';
 import SimpleFilter from './SimpleFilter.vue';
+import QueryBox from './QueryBox.vue';
 import {completeQuery} from '../filter';
 
 @Component({
   components: {
     SimpleFilter,
+    QueryBox,
   },
 })
 
@@ -48,7 +45,6 @@ export default class SearchBar extends Vue {
   @Getter("query") iquery!: string;
   @Getter("queryCount") queryCount!: string;
   @Action('replaceListings') replaceListings!: (x: any[]) => void;
-  @Action('replaceQuery') replaceQuery!: (x: string) => void;
   constructor() {
     super();
   }
@@ -83,6 +79,7 @@ export default class SearchBar extends Vue {
 
   @Watch('query')
   public async onPropertyChanged(value: string, oldValue: string) {
+    console.log("WORKING ON", value);
     if (value.length > 2) {
       await this.go(value);
     }
@@ -90,10 +87,6 @@ export default class SearchBar extends Vue {
 
   get query() {
     return this.iquery;
-  }
-
-  set query(value: string) {
-    this.replaceQuery(value);
   }
 
   public wipe() {
