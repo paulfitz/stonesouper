@@ -1,6 +1,6 @@
 <template>
   <div class="form-group" id="qb">
-    <multiselect placeholder="Keywords" v-model="value" :options="moptions" @input="input" v-on:click.stop="1" @search-change="find" :custom-label="label" :showNoResults="false" @open="open"></multiselect>
+    <multiselect placeholder="Keywords" v-model="value" :options="moptions" @input="input" v-on:click.stop="1" @search-change="find" :custom-label="label" :showNoResults="false" @open="open" :allow-empty="true" :multiple="false" :taggable="true" @tag="tagme"></multiselect>
   </div>
 </template>
 
@@ -9,6 +9,7 @@
   import Multiselect from 'vue-multiselect';
   import {Component, Vue} from 'vue-property-decorator';
 import {Getter, Action} from 'vuex-class';
+import {completeQuery} from '../filter';
 
 @Component({
   components: {
@@ -16,8 +17,8 @@ import {Getter, Action} from 'vuex-class';
   },
 })
 export default class QueryBox extends Vue {
-  public value: string = "";
-  public moptions: string[] = [];
+  public value: any = "";
+  public moptions: any[] = [];
   @Getter filters!: {[key: string]: string[]};
   @Action('setFilter') setFilter!: (payload: {key: string, values: string[]}) => void;
   @Action('incFilterCount') incFilterCount!: (offset: number) => void;
@@ -35,18 +36,35 @@ export default class QueryBox extends Vue {
       this.setFilter({key: val.type, values: [...new Set([...this.filters[val.type], val.name])]});
       console.log("FILTERS NOW", this.filters);
       this.incFilterCount(1);
+    } else {
+      // should go to org
+      console.log("I SHOULD DO SOMETHING ABOUT", val);
+      this.replaceQuery(val.name);
     }
+  }
+
+  public tagme(val: any) {
+    const t = {
+      name: val,
+      type: '',
+    };
+    this.value = t;
+    this.moptions.push(t);
+    this.replaceQuery(val);
   }
 
   public async find(query: string) {
     console.log("FIND on", query);
     this.replaceQuery(query);
-    const x = await axios.post('/api/autocomplete', {key: [query]}, { responseType: 'json' });
+    const params = {key: [query]};
+    completeQuery(params, this.filters);
+    const x = await axios.post('/api/autocomplete', params, { responseType: 'json' });
     console.log(">>>", x);
     this.moptions = x.data; //x.data.map((v: any) => v.name);
   }
 
   public label(v: any) {
+    if (!v.type) { return v.name; }
     return `${v.name} (${v.type})`;
   }
 
