@@ -43,6 +43,7 @@ export interface MapItem extends MinMapItem, Address {
 
 export interface Loc extends Coord, Address {
   id: number,
+  is_primary?: boolean,
 }
 
 export interface Org {

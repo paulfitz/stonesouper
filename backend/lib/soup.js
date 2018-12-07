@@ -444,6 +444,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  Search
+  Search,
 };
 

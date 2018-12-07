@@ -2,13 +2,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 
 const {Search} = require('./soup');
+const {summarizeOrg} = require('./summary');
 
 const {groupBy, values} = require('lodash');
 
-
-
-// this logic for mapping sql results to nested json can probably be replaced with
-// typeorm if it is patched to accept CTEs.
 function nested1(vals /*: {[key: string]: any}*/) {
   const keys = Object.keys(vals);
   for (const key of keys) {
@@ -25,8 +22,6 @@ function nested1(vals /*: {[key: string]: any}*/) {
   return vals;
 }
 
-// this logic for mapping sql results to nested json can probably be replaced with
-// typeorm if it is patched to accept CTEs.
 function nested(vals2 /*: Array<{[key: string]: any}>*/) {
   const unpacked = vals2.map(nested1);
   if (unpacked.length > 0) {
@@ -111,7 +106,7 @@ function startServer(filename, port, verbose) {
 
   getOrPost(api, '/orgs/:id([0-9]+)', (req, res) => {
     const orgs = nested(db.groupedOrg(req.params.id, req.body));
-    const org = orgs.filter(o => o.id === parseInt(req.params.id, 10))[0];
+    const org = summarizeOrg(orgs, parseInt(req.params.id, 10));
     res.json({ orgs, org });
   });
 
@@ -142,7 +137,7 @@ function startServer(filename, port, verbose) {
 
   app.use('/api', api);
 
-  app.use(express.static('dist'));
+  app.use(express.static('website'));
 
   return app.listen(port, () => log(`== port ${port}`));
 }

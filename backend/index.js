@@ -1,3 +1,10 @@
+// const fs = require('fs');
+// const path = require('path');
+// const appRoot = path.dirname(path.dirname(__dirname));
+// require('app-module-path').addPath(appRoot);
+
+require('ts-node').register({files: true});
+
 const {startServer} = require('./lib/server');
 
 if (require.main === module) {

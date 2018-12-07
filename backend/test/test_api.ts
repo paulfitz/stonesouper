@@ -200,8 +200,8 @@ describe('server', async () => {
 
   it('GET /api/orgs/{orgId} has org', async () => {
     const result = await axios.get(base + '/api/orgs/1');
-    assert.equal(result.data.org.id, 1);
-    assert.equal(result.data.org.name, 'Arcosanti');
+    assert.equal(result.data.org.id, 0);
+    assert.equal(result.data.org.name, 'University of Advancing Technology');
   });
 
   it('GET /api/orgs/{orgId} has orgs', async () => {

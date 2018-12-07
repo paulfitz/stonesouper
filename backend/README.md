@@ -63,5 +63,6 @@ are grouped with the specified organization and that also meet the search criter
 
 == GET /...
 
-Any material placed in a `dist` subdirectory will be served.  So the single-page
-application in `../frontend` can be placed here to make a fully standalone webserver.
+Any material placed in a `website` subdirectory will be served.  So the single-page
+application in `../frontend` can be placed here when compiled to make a
+standalone webserver.
