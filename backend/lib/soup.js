@@ -52,6 +52,7 @@ class Query {
     this.params = [];
     this.selects = ["organizations.*"];
     this.joins.push("from organizations");
+    this.groups = null;
     this.limits = null;
     this.orders = null;
     this.have_tags = {};
@@ -251,6 +252,9 @@ class Query {
         'coalesce(locations.physical_country,locations.mailing_country) as country'
       );
     }
+    if (active === 'directory') {
+      this.selects.push('grouping');
+    }
     this.orders = null;
   }
 
@@ -283,6 +287,10 @@ class Query {
     if (this.wheres && this.wheres.length) {
       txts.push("where");
       txts.push(this.wheres.join(' and '));
+    }
+    if (this.groups) {
+      txts.push("group by");
+      txts.push(this.groups.join(', '));
     }
     if (this.orders) {
       txts.push(this.orders);
@@ -338,6 +346,9 @@ class Search {
     query.select_map(args.map);
     query.select_tags(args.includeTags);
     query.limit(args.limit);
+    if (args.onePerGroup) {
+      query.groups = ['coalesce(grouping, organizations.id)'];
+    }
     return query;
   }
 
@@ -355,7 +366,7 @@ class Search {
 
   map(args, flavor) {
     args = args || {};
-    args.map = flavor || 'normal';
+    args.map = flavor || args.map || 'normal';
     return this.search(args);
   }
 
@@ -420,6 +431,8 @@ class Search {
 
     params.key = [String(key) + '*'];
     params.map = 'min';
+    params.onePerGroup = true;
+    params.verbose = true;
     results.push(...this.addType('org', this.search(params)));
     params.key = null;
     params.map = null;

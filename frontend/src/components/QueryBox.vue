@@ -28,7 +28,7 @@ export default class QueryBox extends Vue {
   public input(val: any) {
     if (!val) { return; }
     console.log("INPUT", val.name, val.type);
-    if (val.type !== 'org') {
+    if (val.type !== 'org' && val.type !== '') {
       // should modify filter
       this.value = "";
       this.replaceQuery("");
@@ -40,10 +40,12 @@ export default class QueryBox extends Vue {
       // should go to org
       console.log("I SHOULD DO SOMETHING ABOUT", val);
       this.replaceQuery(val.name);
+      this.$router.push('/org/' + val.org_id + '#');
     }
   }
 
   public tagme(val: any) {
+    console.log("TAGME", val);
     const t = {
       name: val,
       type: '',
@@ -51,9 +53,16 @@ export default class QueryBox extends Vue {
     this.value = t;
     this.moptions.push(t);
     this.replaceQuery(val);
+    this.incQueryCount(1);
   }
 
   public async find(query: string) {
+    if (query !== '') {
+      return this.findx(query);
+    }
+  }
+
+  public async findx(query: string) {
     console.log("FIND on", query);
     this.replaceQuery(query);
     const params = {key: [query]};
@@ -69,7 +78,8 @@ export default class QueryBox extends Vue {
   }
 
   public async open() {
-    this.find("");
+    console.log("OPEN");
+    this.findx("");
   }
 }
 </script>

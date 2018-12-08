@@ -1,6 +1,6 @@
 <template>
   <div v-masonry item-selector=".listing" fit-width="true" class="listings">
-      <div v-masonry-tile class="listing" v-for="result in listings.slice(0, 100)" v-on:click.stop="1">
+      <div v-masonry-tile class="listing" v-for="result in directory.slice(0, 100)" v-on:click.stop="1">
         <h4><router-link :to="'/org/' + result.org_id">{{result.name}}</router-link></h4> 
         <div class="more">
           {{ result.physical_address1 }}
@@ -24,12 +24,25 @@
 export default class Directory extends Vue {
   @Getter public nlistings!: number;
   @Getter public listings!: any[];
+  public directory: any[] = [];
   constructor() {
     super();
   }
 
   @Watch('listings')
   public async onPropertyChange(value: any, oldValue: any) {
+    console.log("HELLO!!!!!");
+    const present = new Set<number>();
+    const result = []
+    for (const item of this.listings) {
+      if (item.grouping && present.has(item.grouping)) { continue; }
+      if (item.grouping) { present.add(item.grouping); }
+      result.push(item);
+    }
+    console.log(this.listings);
+    console.log(result);
+    this.directory = result;
+    // this.directory = this.listings;
     this.$nextTick(function () { (this as any).$redrawVueMasonry() })
   }
 }

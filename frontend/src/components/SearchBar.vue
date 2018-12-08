@@ -1,5 +1,5 @@
 <template>
-  <div class="searchbar">
+  <div class="searchbar" v-on:click.stop="1">
   <div class="form-group">
     <div class="form-group form-inline">
       <SimpleFilter filterKey="city" />
@@ -14,7 +14,7 @@
     </div>
     <div class="form-group form-inline">
       <QueryBox />
-      <button v-on:click="search()" v-on:click.stop="1" class="btn btn-primary mb-2 form-control-lg">Search</button>
+      <button v-on:click="search()" class="btn btn-primary mb-2 form-control-lg">Search</button>
     </div>
   </div>
   </div>
@@ -45,6 +45,9 @@ export default class SearchBar extends Vue {
   @Getter("query") iquery!: string;
   @Getter("queryCount") queryCount!: string;
   @Action('replaceListings') replaceListings!: (x: any[]) => void;
+  public updateTick: any = null;
+  public lastQuery: string = ".";
+
   constructor() {
     super();
   }
@@ -62,16 +65,23 @@ export default class SearchBar extends Vue {
     console.log("SEARCHING FOR", value);
     try {
       const params: any = {
-        limit: 5000
+        limit: 500,
+        map: 'directory',
       };
       if (value !== '') {
         params.key = [value + "*"];
       }
       completeQuery(params, this.filters);
       console.log("PARAMS", params);
-      const x = await axios.post(`/api/map`, params, {responseType: 'json'});
-      console.log(`GOT ${x.data.length} listings!`);
-      this.replaceListings(x.data);
+      const q = JSON.stringify(params);
+      if (q === this.lastQuery) {
+        console.log("SKIPPING DUPE QUERY");
+      } else {
+        const x = await axios.post(`/api/map`, params, {responseType: 'json'});
+        console.log(`GOT ${x.data.length} listings!`);
+        this.replaceListings(x.data);
+        this.lastQuery = q;
+      }
     } catch(e) {
       console.log("ERROR", e);
     }
@@ -80,9 +90,13 @@ export default class SearchBar extends Vue {
   @Watch('query')
   public async onPropertyChanged(value: string, oldValue: string) {
     console.log("WORKING ON", value);
-    if (value.length > 2) {
-      await this.go(value);
-    }
+    if (this.updateTick) { clearTimeout(this.updateTick); }
+    this.updateTick = setTimeout(async () => {
+      if (value.length > 2) {
+        await this.go(value);
+      }
+      this.updateTick = null;
+    }, 2000);
   }
 
   get query() {
