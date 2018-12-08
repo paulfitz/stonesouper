@@ -106,7 +106,7 @@ export function summarizeContacts(orgs: Hit[]) {
   for (const org of orgs) {
     if (!result.phone) { result.phone = org.phone; }
     result.email = preferSite(result.email, org.email);
-    result.website = preferSite(result.email, org.website);
+    result.website = preferSite(result.website, org.website);
   }
   return result;
 }

@@ -9,22 +9,48 @@
       <div v-if="listing" class="content" :key="listing.org.id">
         <h2>{{ listing.org.name }}</h2>
 
-        {{ listing.org.description }}
+        <p v-html="listing.org.description"></p>
 
-      <div v-for="result in listing.org.locs">
-        <div class="more">
-          {{ result.address1 }}
-          {{ result.address2 }}
-          <br v-if="result.address1 || result.address2" />
-          {{ result.city }}
-          {{ result.state }}
-          {{ result.zip }}
-          <br v-if="result.city || result.state || result.zip" />
-          {{ result.country }}
+        <p v-if="listing.org.website">
+          See <a v-bind:href="websiteLink(listing.org.website)">{{ listing.org.website }}</a>
+        </p>
+
+        <p v-if="listing.org.locs">
+          <h4>Address</h4>
+          <div v-for="result in listing.org.locs">
+            {{ result.address1 }}
+            {{ result.address2 }}
+            <br v-if="result.address1 || result.address2" />
+            {{ result.city }}
+            {{ result.state }}
+            {{ result.zip }}
+            <br v-if="result.city || result.state || result.zip" />
+            {{ result.country }}
+          </div>
+        </p>
+
+        <p v-if="listing.org.phone">
+          <h4>Phone number</h4>
+          {{ listing.org.phone }}
+        </p>
+        
+        <p v-if="listing.org.website">
+          <h4>Website</h4>
+          <a v-bind:href="websiteLink(listing.org.website)">{{ listing.org.website }}</a>
+        </p>
+        
+        <p v-if="listing.org.email">
+          <h4>Email</h4>
+          {{ listing.org.email }}
+        </p>
+
+        <div v-if="listing.org.tags">
+          <p>
+            <h5>Tags (unfinished)</h5>
+            {{ JSON.stringify(listing.org.tags) }}
+          </p>
         </div>
-
-      </div>
-
+        
         <a href="javascript:history.go(-1)">Go Back</a>
       </div>
     </transition>
@@ -43,13 +69,25 @@ export default class Listing extends Vue {
   @Prop({default: ""}) public error!: string;
   @Getter listing!: any;
   @Action('replaceListing') replaceListing!: (x: any) => void;
+
   constructor() {
     super();
   }
   public async created() {
     console.log(this.$route.params.id);
-    const x = await axios.get(`/api/orgs/${this.$route.params.id}`, {responseType: 'json'});
+    const x = await axios.get(`/api/orgs/${this.$route.params.id}`, {
+      responseType: 'json',
+      params: {
+        includeTags: true
+      }
+    });
     this.replaceListing(x.data);
+  }
+
+  public websiteLink(url: string|null) {
+    if (!url) { return ''; }
+    if (!url.match(/^https?:\/\//)) { return url; }
+    return `http://${url}`;
   }
 }
 </script>
