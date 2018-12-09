@@ -29,6 +29,11 @@ export default class Directory extends Vue {
     super();
   }
 
+  public mounted() {
+    console.log("REMORE");
+    this.onPropertyChange(this.listings, []);
+  }
+
   @Watch('listings')
   public async onPropertyChange(value: any, oldValue: any) {
     console.log("HELLO!!!!!");
@@ -42,7 +47,6 @@ export default class Directory extends Vue {
     console.log(this.listings);
     console.log(result);
     this.directory = result;
-    // this.directory = this.listings;
     this.$nextTick(function () { (this as any).$redrawVueMasonry() })
   }
 }

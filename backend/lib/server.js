@@ -27,18 +27,24 @@ function nested(vals2 /*: Array<{[key: string]: any}>*/) {
   if (unpacked.length > 0) {
     const last = {};
     const merged = [];
+    const locIds = new Set();
     for (const o of unpacked) {
       const id = o.id;
       const lid = last[id];
       if (lid === undefined) {
         last[id] = merged.length;
         merged.push(o);
-        if (o.locs) { o.locs = [o.locs]; }
+        if (o.locs) { locIds.add(o.locs.id); o.locs = [o.locs]; }
         else { o.locs = []; }
         if (o.tags) { o.tags = [o.tags]; }
         else { o.tags = []; }
       } else {
-        if (o.locs) { merged[lid].locs.push(o.locs); }
+        if (o.locs) {
+          if (!locIds.has(o.locs.id)) {
+            locIds.add(o.locs.id);
+            merged[lid].locs.push(o.locs);
+          }
+        }
         if (o.tags) { merged[lid].tags.push(o.tags); }
       }
     }
