@@ -7,8 +7,10 @@ export interface Query {
   state?: string[],
   country?: string[],
   around?: [number, number, number, 'km'|'mile'],  // lat, long, distance, unit
+  range?: [number, number, number, number],   // minLng, minLat, maxLng, maxLat
 
   map?: 'min'|'normal',
+  zoom?: number,
   tag?: string[],
   tags?: {[parent: string]: string[]},
   team?: string[],
