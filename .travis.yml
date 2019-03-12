@@ -2,6 +2,6 @@ language: node_js
 node_js:
   - "8"
 install:
-  - cd backend && npm install
+  - cd backend && npm install && cd ..
 script:
-  - cd backend && npm test
+  - cd backend && npm test && cd ..
