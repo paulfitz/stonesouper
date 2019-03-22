@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3');
+const Supercluster = require('supercluster');
 
 const KMS_PER_MILE = 1.609;
 const NMS_PER_MILE = 0.868976242;
@@ -237,11 +238,16 @@ class Query {
     }
   }
 
-  select_map(active) {
+  select_map(active, range) {
     if (!active) { return; }
     this.selects = ['locations.longitude as lng', 'locations.latitude as lat',
                     'organizations.name as name', 'organizations.id as org_id',
                     'locations.id as loc_id'];
+    if (range) {
+      this.wheres.push('locations.longitude >= ? and locations.longitude <= ? and ' +
+                       'locations.latitude >= ? and locations.latitude <= ?');
+      this.params.push(range[0], range[2], range[1], range[3]);
+    }
     if (active !== 'min') {
       this.selects.push(
         'coalesce(locations.physical_address1,locations.mailing_address1) as address1',
@@ -343,7 +349,7 @@ class Search {
     query.narrow_by_dsos(args.team);
     query.narrow_by_grouping(args.grouping);
     query.select_options(args.options, this.single(args.optionPrefix), args);
-    query.select_map(args.map);
+    query.select_map(args.map, args.range);
     query.select_tags(args.includeTags);
     query.limit(args.limit);
     if (args.onePerGroup) {
@@ -368,6 +374,29 @@ class Search {
     args = args || {};
     args.map = flavor || args.map || 'normal';
     return this.search(args);
+  }
+
+  cluster(args) {
+    args = args || {};
+    args.map = 'min';
+    const range = args.range || [-180, -85, 180, 85];
+    const zoom = args.zoom || 2;
+    const results = this.search(args);
+    const index = new Supercluster({});
+    const data = results.map(row => ({
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [parseFloat(row.lng), parseFloat(row.lat)]
+      },
+      "properties": {
+        name: row.name,
+        id: row.org_id
+      }
+    })).filter(feat => !(isNaN(feat.geometry.coordinates[0]) ||
+                         isNaN(feat.geometry.coordinates[1])));
+    index.load(data);
+    return index.getClusters(range, zoom);
   }
 
   org(id) {
@@ -432,7 +461,6 @@ class Search {
     params.key = [String(key) + '*'];
     params.map = 'min';
     params.onePerGroup = true;
-    params.verbose = true;
     results.push(...this.addType('org', this.search(params)));
     params.key = null;
     params.map = null;

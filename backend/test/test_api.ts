@@ -295,6 +295,20 @@ describe('server', async () => {
     assert.includeMembers(Object.keys(result.data[0]), ['lat', 'lng', 'name']);
   });
 
+  it('GET /api/map/cluster works', async () => {
+    let result = await axios.get(base + '/api/map/cluster');
+    const ct = result.data.length;
+    result = await axios.get(base + '/api/map/cluster?zoom=1');
+    assert.isBelow(result.data.length, ct);
+    result = await axios.get(base + '/api/map/cluster?zoom=16');
+    assert.isAbove(result.data.length, ct);
+
+    let ct16 = result.data.length;
+    result = await axios.get(base + '/api/map/cluster?zoom=16&range=[-180,-20,180,20]');
+    assert.isBelow(result.data.length, ct16);
+    assert.isAbove(result.data.length, 0);
+  });
+
   it('GET /api/nothing throws json error', async () => {
     const result = await axios.get(base + '/api/nothing',
                                    { validateStatus: (status: number) => true });

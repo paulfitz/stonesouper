@@ -110,6 +110,11 @@ function startServer(filename, port, verbose) {
     res.json(db.map(req.body, 'min'));
   });
 
+  getOrPost(api, '/map/cluster', (req, res) => {
+    res.json(db.cluster(req.body));
+  });
+
+
   getOrPost(api, '/orgs/:id([0-9]+)', (req, res) => {
     const orgs = nested(db.groupedOrg(req.params.id, req.body));
     const org = summarizeOrg(orgs, parseInt(req.params.id, 10));
