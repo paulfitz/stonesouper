@@ -309,6 +309,11 @@ describe('server', async () => {
     assert.isAbove(result.data.length, 0);
   });
 
+  it('GET /geosearch works', async () => {
+    const result = await axios.get(base + '/geosearch?bounds=-180,-20,180,20&zoom=6');
+    assert.sameMembers(Object.keys(result.data), ['clusters', 'grouped_points', 'single_points']);
+  });
+
   it('GET /api/nothing throws json error', async () => {
     const result = await axios.get(base + '/api/nothing',
                                    { validateStatus: (status: number) => true });

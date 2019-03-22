@@ -11,3 +11,4 @@ cp -v /tmp/sitemem/stonesoup.sqlite3 .
 mv ../backend/stonesoup.sqlite3 /tmp || echo ok
 ln -s $PWD/stonesoup.sqlite3 ../backend/stonesoup.sqlite3
 ./index.sh
+./solidarity.sh

@@ -238,7 +238,7 @@ class Query {
     }
   }
 
-  select_map(active, range) {
+  select_map(active, range, args) {
     if (!active) { return; }
     this.selects = ['locations.longitude as lng', 'locations.latitude as lat',
                     'organizations.name as name', 'organizations.id as org_id',
@@ -260,6 +260,10 @@ class Query {
     }
     if (active === 'directory') {
       this.selects.push('grouping');
+    }
+    if (args.icon) {
+      // for dbs that have an icon field attached to organizations, select it.
+      this.selects.push('icon_group_id');
     }
     this.orders = null;
   }
@@ -349,7 +353,7 @@ class Search {
     query.narrow_by_dsos(args.team);
     query.narrow_by_grouping(args.grouping);
     query.select_options(args.options, this.single(args.optionPrefix), args);
-    query.select_map(args.map, args.range);
+    query.select_map(args.map, args.range, args);
     query.select_tags(args.includeTags);
     query.limit(args.limit);
     if (args.onePerGroup) {
@@ -391,7 +395,8 @@ class Search {
       },
       "properties": {
         name: row.name,
-        id: row.org_id
+        id: row.org_id,
+        icon: row.icon_group_id
       }
     })).filter(feat => !(isNaN(feat.geometry.coordinates[0]) ||
                          isNaN(feat.geometry.coordinates[1])));

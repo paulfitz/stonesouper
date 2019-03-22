@@ -148,6 +148,46 @@ function startServer(filename, port, verbose) {
 
   app.use('/api', api);
 
+  // emulate solr endpoint
+  app.get('/geosearch', (req, res) => {
+    if (!req.query.bounds) {
+      throw new Error("need bounds");
+    }
+    if (!req.query.zoom) {
+      throw new Error("need bounds");
+    }
+    const body = {
+      range: req.query.bounds.split(',').map(x => parseFloat(x)),
+      zoom: parseInt(req.query.zoom),
+      icon: true
+    };
+    const raw = db.cluster(body);
+    const cooked = {
+      clusters: {
+        features: []
+      },
+      grouped_points: [],  // what goes here?
+      single_points: {
+        features: []
+      }
+    }
+    for (const feat of raw) {
+      delete feat.id;
+      if (feat.properties.cluster) {
+        cooked.clusters.features.push(feat);
+        feat.properties = {clusterCount: feat.properties.point_count};
+      } else {
+        cooked.single_points.features.push(feat);
+        feat.properties = {
+          popupContent: feat.properties.name,
+          org_id: String(feat.properties.id),
+          icon_group_id: String(feat.properties.icon)
+        };
+      }
+    }
+    res.json(cooked);
+  });
+
   app.use(express.static('website'));
 
   return app.listen(port, () => log(`== port ${port}`));
