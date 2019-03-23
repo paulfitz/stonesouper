@@ -162,6 +162,24 @@ describe('server', async () => {
     assert.equal(result.length, 11);
   });
 
+  it('POST /api/search responds to body.tag', async () => {
+    let result: Hit[];
+    result = await search({
+      tag: ['open-password-place']
+    });
+    assert.equal(result.length, 17);
+
+    result = await search({
+      tag: ['open-password-place', 'wacky']
+    });
+    assert.equal(result.length, 60);
+
+    result = await search({
+      tag: ['open-password-place','!wacky']
+    });
+    assert.equal(result.length, 11);
+  });
+
   it('POST /api/search responds to body.team', async () => {
     let result: Hit[];
     result = await search({ team: [] });

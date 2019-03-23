@@ -64,7 +64,7 @@ class Query {
     if (!term) { return; }
     this.joins.push('inner join units' +
                     '  on units.taggable_id = organizations.id' +
-                    '  and units.taggable_type = "Organization"');
+                    '  and units.taggable_type = \'Organization\'');
     this.wheres.push('units match ?');
     this.params.push(term.join(' '));
   }
@@ -72,7 +72,7 @@ class Query {
   select_locations() {
     this.joins.push('left join locations' +
                     '  on locations.taggable_id = organizations.id' +
-                    '  and locations.taggable_type = "Organization"');
+                    '  and locations.taggable_type = \'Organization\'');
     // For historic reasons, stonesoup dbs have physical and mailing addresses
     // in a single location record.  This didn't really work well so is unused.
     // location_label can be set to 'physical' or 'mailing' if type of address is
@@ -93,10 +93,21 @@ class Query {
   narrow_by_geo(part, options) {
     if (!options) { return; }
     const qs = options.map(x => '?').join(',');
-    this.wheres.push(`(locations.physical_${part} in (${qs})` +
-                     ` or locations.mailing_${part} in (${qs}))`);
-    this.params.push(...options);
-    this.params.push(...options);
+    if (part === 'zip' && !options.some(x => x.includes('-'))) {
+      // a nuance with zip codes is we may want to match weakly
+      const clauses = [];
+      for (const opt of options) {
+        const safeOpt = opt.replace(/[^a-zA-Z0-9]/g, '');
+        clauses.push(`(locations.physical_${part} like '${safeOpt}%' ` +
+                     ` or locations.mailing_${part} like '${safeOpt}%')`);
+      }
+      this.wheres.push(`(${clauses.join(' or ')})`)
+    } else {
+      this.wheres.push(`(locations.physical_${part} in (${qs})` +
+                       ` or locations.mailing_${part} in (${qs}))`);
+      this.params.push(...options);
+      this.params.push(...options);
+    }
   }
 
   join_tags(postfix, joinType) {
@@ -104,7 +115,7 @@ class Query {
     if (this.have_tags[postfix]) { return; }
     this.joins.push(`${joinType} join taggings as taggings${postfix}` +
                     `  on taggings${postfix}.taggable_id = organizations.id` +
-                    `  and taggings${postfix}.taggable_type = "Organization"`);
+                    `  and taggings${postfix}.taggable_type = \'Organization\'`);
     this.joins.push(`${joinType} join tags as tags${postfix}` +
                     `  on tags${postfix}.id = taggings${postfix}.tag_id`);
     this.have_tags[postfix] = true;
@@ -112,10 +123,15 @@ class Query {
 
   narrow_by_tags(tags) {
     if (!tags) { return; }
+    /*
     const qs = tags.map(x => '?').join(',');
+    const ptags = tags.filter(k => k[0] !== '!');
+    const ntags = tags.filter(k => k[0] === '!').map(k => k.slice(1));
     this.join_tags("")
     this.wheres.push(`tags.name in (${qs})`);
     this.params.push(...tags);
+    */
+    this.narrow_by_many_tags({'': tags});
   }
 
   narrow_by_many_tags(tags) {
@@ -140,9 +156,13 @@ class Query {
       if (ntags.length > 0) {
         const npostfix = '_' + postfix;
         const nqs = ntags.map(x => '?').join(',');
-        this.wheres.push(`not exists(select 1 from taggings as tg2${npostfix} inner join tags as t2${npostfix} on tg2${npostfix}.tag_id = t2${npostfix}.id where tg2${npostfix}.taggable_id = organizations.id and tg2${npostfix}.taggable_type=? and t2${npostfix}.parent_id = (select id from tags as t${npostfix} where name = ? order by id limit 1) and t2${npostfix}.name in (${nqs}))`)
         this.params.push('Organization');
-        this.params.push(key);
+        if (key !== '') {
+          this.wheres.push(`(not exists(select 1 from taggings as tg2${npostfix} inner join tags as t2${npostfix} on tg2${npostfix}.tag_id = t2${npostfix}.id where tg2${npostfix}.taggable_id = organizations.id and tg2${npostfix}.taggable_type=? and t2${npostfix}.parent_id = (select id from tags as t${npostfix} where name = ? order by id limit 1) and t2${npostfix}.name in (${nqs})))`);
+          this.params.push(key);
+        } else {
+          this.wheres.push(`(not exists(select 1 from taggings as tg2${npostfix} inner join tags as t2${npostfix} on tg2${npostfix}.tag_id = t2${npostfix}.id where tg2${npostfix}.taggable_id = organizations.id and tg2${npostfix}.taggable_type=? and t2${npostfix}.name in (${nqs})))`);
+        }
         this.params.push(...ntags);
       }
     }
@@ -150,7 +170,7 @@ class Query {
 
   join_dsos() {
     if (this.have_dsos) { return; }
-    this.joins.push('inner join data_sharing_orgs_taggables as dt on dt.taggable_id = organizations.id and dt.taggable_type = "Organization"');
+    this.joins.push('inner join data_sharing_orgs_taggables as dt on dt.taggable_id = organizations.id and dt.taggable_type = \'Organization\'');
     this.joins.push('inner join data_sharing_orgs on dt.data_sharing_org_id = data_sharing_orgs.id');
     this.have_dsos = true;
   }
@@ -273,7 +293,7 @@ class Query {
     // throw new Error('Not yet supported');
     this.joins.push('left join taggings as sel_taggings ' +
                     'on sel_taggings.taggable_id = organizations.id and ' +
-                    '  sel_taggings.taggable_type = "Organization"');
+                    '  sel_taggings.taggable_type = \'Organization\'');
     this.joins.push('left join tags as main_tag on sel_taggings.tag_id = main_tag.id');
     this.joins.push('left join tags as parent_tag on parent_tag.id = main_tag.parent_id');
     this.joins.push('left join tags as grandparent_tag on grandparent_tag.id = parent_tag.parent_id');
@@ -386,7 +406,10 @@ class Search {
     const range = args.range || [-180, -85, 180, 85];
     const zoom = args.zoom || 2;
     const results = this.search(args);
-    const index = new Supercluster({});
+    const index = new Supercluster({
+      radius: 70,
+      maxZoom: 16
+    });
     const data = results.map(row => ({
       "type": "Feature",
       "geometry": {

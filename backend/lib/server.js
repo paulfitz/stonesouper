@@ -80,6 +80,14 @@ function getOrPost(app, path, action) {
   });
 }
 
+function asList(param) {
+  if (!param) { return null; }
+  if (!Array.isArray(param)) {
+    param = [param];
+  }
+  return param.map(p => p.startsWith('-') ? `!${p.slice(1)}` : p);
+}
+
 function startServer(filename, port, verbose) {
   const log = verbose ? console.log : ((...args) => 1);
 
@@ -161,6 +169,17 @@ function startServer(filename, port, verbose) {
       zoom: parseInt(req.query.zoom),
       icon: true
     };
+    if (req.query.country) { body.country = asList(req.query.country); }
+    if (req.query.city) { body.city = asList(req.query.city); }
+    if (req.query.zip) { body.zip = asList(req.query.zip); }
+    if (req.query.state_two_letter) { body.state = asList(req.query.state_two_letter); }
+    if (req.query.type_name) { body.tag = asList(req.query.type_name); }
+    if (req.query.search_text) { body.key = asList(req.query.search_text); }
+    if (req.query.require_org_type) {
+      // solidarity db is a bit misconfigured, OrgTypes don't have parents set up :(
+      if (!body.tags) { body.tags = {}; }
+      body.tags[''] = asList(req.query.require_org_type);
+    }
     const raw = db.cluster(body);
     const cooked = {
       clusters: {
