@@ -11,7 +11,7 @@ node ./index.js
 The most exhaustive information about the api can be found in the tests in
 `test/test_api.ts`.
 
-== Common parameters
+## Common parameters
 
 All the endpoints below can accept a set of parameters, either as query parameters
 in a GET, or as json fields in a POST.  As JSON, the parameters are passed as follows:
@@ -32,7 +32,7 @@ the character '[' it is interpreted as json.  Otherwise, it is split on the char
 
 All parameters are optional, and can be combined freely and efficiently.
 
-== GET /api/search
+## GET /api/search
 
 Search database for the given keyword, returning a list of organizations.
 See common parameters.
@@ -44,16 +44,16 @@ Example:
 
 Returns a list of organizations.
 
-== GET /api/map
+## GET /api/map
 
 As for the search endpoint, but returns a list of coordinates as opposed to 
 organizations.
 
-== GET /api/orgs/:id
+## GET /api/orgs/:id
 
 Fetch information about an organization by id.
 
-== GET|POST /api/orgs/:id/grouped
+## GET|POST /api/orgs/:id/grouped
 
 Fetch information about an organization by id.  Gives back a list of entries that
 have been grouped with that organization.
@@ -61,7 +61,7 @@ have been grouped with that organization.
 POST method accepts a json body of the same form as /api/search, and returns only entries that
 are grouped with the specified organization and that also meet the search criteria.
 
-== GET /...
+## GET /...
 
 Any material placed in a `website` subdirectory will be served.  So the single-page
 application in `../frontend` can be placed here when compiled to make a
