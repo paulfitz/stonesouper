@@ -167,7 +167,9 @@ function startServer(filename, port, verbose) {
     const body = {
       range: req.query.bounds.split(',').map(x => parseFloat(x)),
       zoom: parseInt(req.query.zoom),
-      icon: true
+      icon: true,
+      radius: req.query.radius,
+      max_zoom: req.query.max_zoom,
     };
     if (req.query.country) { body.country = asList(req.query.country); }
     if (req.query.city) { body.city = asList(req.query.city); }

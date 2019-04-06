@@ -328,8 +328,11 @@ describe('server', async () => {
   });
 
   it('GET /geosearch works', async () => {
-    const result = await axios.get(base + '/geosearch?bounds=-180,-20,180,20&zoom=6');
+    const result = await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
     assert.sameMembers(Object.keys(result.data), ['clusters', 'grouped_points', 'single_points']);
+    const result2 = await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6&radius=1');
+    assert.isAbove(result2.data.single_points.features.length,
+                   result.data.single_points.features.length);
   });
 
   it('GET /api/nothing throws json error', async () => {

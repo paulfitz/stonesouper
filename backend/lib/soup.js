@@ -405,10 +405,12 @@ class Search {
     args.map = 'min';
     const range = args.range || [-180, -85, 180, 85];
     const zoom = args.zoom || 2;
+    const radius = parseFloat(args.radius || '70');
+    const maxZoom = parseFloat(args.max_zoom || '16');
     const results = this.search(args);
     const index = new Supercluster({
-      radius: 70,
-      maxZoom: 16
+      radius,
+      maxZoom
     });
     const data = results.map(row => ({
       "type": "Feature",
