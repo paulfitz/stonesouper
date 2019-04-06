@@ -169,7 +169,7 @@ function startServer(filename, port, verbose) {
       zoom: parseInt(req.query.zoom),
       icon: true,
       radius: req.query.radius,
-      max_zoom: req.query.max_zoom,
+      maxZoom: req.query.maxZoom,
     };
     if (req.query.country) { body.country = asList(req.query.country); }
     if (req.query.city) { body.city = asList(req.query.city); }

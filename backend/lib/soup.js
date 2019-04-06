@@ -406,7 +406,7 @@ class Search {
     const range = args.range || [-180, -85, 180, 85];
     const zoom = args.zoom || 2;
     const radius = parseFloat(args.radius || '70');
-    const maxZoom = parseFloat(args.max_zoom || '16');
+    const maxZoom = parseFloat(args.maxZoom || '16');
     const results = this.search(args);
     const index = new Supercluster({
       radius,
