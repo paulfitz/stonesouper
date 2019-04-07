@@ -1,7 +1,7 @@
 {
-  "name": "stonesoup-api",
-  "version": "1.0.0",
-  "description": "",
+  "name": "stonesouper",
+  "version": "1.0.1",
+  "description": "A backend for a stonesoup-style directory",
   "main": "index.js",
   "scripts": {
     "test": "mocha test/test_api.ts",
@@ -12,14 +12,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paulfitz/stonesoup-api.git"
+    "url": "git+https://github.com/paulfitz/stonesouper.git"
   },
   "author": "Paul Fitzpatrick",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/paulfitz/stonesoup-api/issues"
+    "url": "https://github.com/paulfitz/stonesouper/issues"
   },
-  "homepage": "https://github.com/paulfitz/stonesoup-api#readme",
+  "homepage": "https://github.com/paulfitz/stonesouper#readme",
   "dependencies": {
     "better-sqlite3": "^4.1.4",
     "body-parser": "^1.18.3",
