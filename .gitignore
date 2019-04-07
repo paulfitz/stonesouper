@@ -1,8 +1,7 @@
-data/_cache/
-
-backend/node_modules/
-backend/stonesoup.sqlite3
-
-frontend/node_modules/
-frontend/dist/
-frontend/npm-debug.log
+*
+!index.js
+!package.json
+!package-lock.json
+!README.md
+!.gitignore
+!lib/*
