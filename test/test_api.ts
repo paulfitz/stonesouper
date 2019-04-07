@@ -38,7 +38,7 @@ describe('server', async () => {
     tmp.setGracefulCleanup();
     tmpobj = tmp.dirSync({unsafeCleanup: true});
     dbFilename = `${tmpobj.name}/stonesoup.sqlite3`;
-    await fse.copy('../data/stonesoup.sqlite3', dbFilename);
+    await fse.copy('data/stonesoup.sqlite3', dbFilename);
     app = startServer(dbFilename, 9999, false);
   });
 
