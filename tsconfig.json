@@ -10,6 +10,7 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "outDir": "dist",
+    "declaration": true
   },
   "include": ["lib", "test"]
 }

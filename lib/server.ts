@@ -1,12 +1,10 @@
-const express = require('express');
-const bodyParser = require('body-parser');
+import * as bodyParser from 'body-parser';
+import * as express from 'express';
+import {Search} from './soup';
+import {summarizeOrg} from './summary';
+import {groupBy, values} from 'lodash';
 
-const {Search} = require('./soup');
-const {summarizeOrg} = require('./summary');
-
-const {groupBy, values} = require('lodash');
-
-function nested1(vals /*: {[key: string]: any}*/) {
+function nested1(vals: {[key: string]: any}) {
   const keys = Object.keys(vals);
   for (const key of keys) {
     const m = key.match(/^([a-z_0-9]+)__([a-z_0-9]+)$/);
@@ -22,10 +20,10 @@ function nested1(vals /*: {[key: string]: any}*/) {
   return vals;
 }
 
-function nested(vals2 /*: Array<{[key: string]: any}>*/) {
+function nested(vals2: Array<{[key: string]: any}>) {
   const unpacked = vals2.map(nested1);
   if (unpacked.length > 0) {
-    const last = {};
+    const last: {[name: string]: number} = {};
     const merged = [];
     const locIds = new Set();
     for (const o of unpacked) {
@@ -53,7 +51,7 @@ function nested(vals2 /*: Array<{[key: string]: any}>*/) {
   return unpacked;
 }
 
-function groupListings(data, params) {
+function groupListings(data: any, params: any) {
   if (!params.group) {
     return nested(data);
   }
@@ -63,10 +61,10 @@ function groupListings(data, params) {
   }));
 }
 
-function getOrPost(app, path, action) {
+function getOrPost(app: express.Router, path: string, action: express.RequestHandler) {
   app.post(path, action);
-  app.get(path, (req, res) => {
-    const query = {};
+  app.get(path, (req, res, next) => {
+    const query: {[name: string]: any} = {};
     for (const key of Object.keys(req.query)) {
       const v = req.query[key];
       if (v[0] === '[' || v[0] == '{') {
@@ -76,11 +74,11 @@ function getOrPost(app, path, action) {
       }
     }
     req.body = query;
-    return action(req, res);
+    return action(req, res, next);
   });
 }
 
-function asList(param) {
+function asList(param: string[]|string|null) {
   if (!param) { return null; }
   if (!Array.isArray(param)) {
     param = [param];
@@ -88,8 +86,14 @@ function asList(param) {
   return param.map(p => p.startsWith('-') ? `!${p.slice(1)}` : p);
 }
 
-function startServer(filename, port, verbose) {
-  const log = verbose ? console.log : ((...args) => 1);
+class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+  }
+}
+
+export function startServer(filename: string, port: number, verbose: boolean) {
+  const log = verbose ? console.log : (() => 1);
 
   const db = new Search(filename);
 
@@ -125,7 +129,7 @@ function startServer(filename, port, verbose) {
 
   getOrPost(api, '/orgs/:id([0-9]+)', (req, res) => {
     const orgs = nested(db.groupedOrg(req.params.id, req.body));
-    const org = summarizeOrg(orgs, parseInt(req.params.id, 10));
+    const org = summarizeOrg(orgs as any, parseInt(req.params.id, 10));
     res.json({ orgs, org });
   });
 
@@ -141,12 +145,10 @@ function startServer(filename, port, verbose) {
   });
 
   api.use(function(req, res) {
-    const err = new Error("Not found");
-    err.status = 404;
-    throw err;
+    throw new ApiError("Not found", 404);
   });
 
-  api.use(function(err, req, res, next) {
+  api.use(function(err: ApiError, req: express.Request, res: express.Response, next: express.NextFunction) {
     const code = err.status || 500;
     if (code === 500) {
       console.error(err);
@@ -164,8 +166,8 @@ function startServer(filename, port, verbose) {
     if (!req.query.zoom) {
       throw new Error("need bounds");
     }
-    const body = {
-      range: req.query.bounds.split(',').map(x => parseFloat(x)),
+    const body: any = {
+      range: req.query.bounds.split(',').map((x: string) => parseFloat(x)),
       zoom: parseInt(req.query.zoom),
       icon: true,
       radius: req.query.radius,
@@ -185,11 +187,11 @@ function startServer(filename, port, verbose) {
     const raw = db.cluster(body);
     const cooked = {
       clusters: {
-        features: []
+        features: [] as any[]
       },
-      grouped_points: [],  // what goes here?
+      grouped_points: [] as any[],  // what goes here?
       single_points: {
-        features: []
+        features: [] as any[]
       }
     }
     for (const feat of raw) {
@@ -214,11 +216,7 @@ function startServer(filename, port, verbose) {
   return app.listen(port, () => log(`== port ${port}`));
 }
 
-function stopServer(server) {
+export function stopServer(server: any) {
   server.close();
 }
 
-module.exports = {
-  startServer,
-  stopServer,
-};

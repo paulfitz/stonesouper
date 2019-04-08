@@ -1,6 +1,7 @@
 import {assert} from 'chai';
 
-import {Group, Hit, Query, startServer, stopServer} from 'lib/server';
+import {startServer, stopServer} from 'lib/server';
+import {Group, Hit, Query} from 'lib/soup';
 
 import axios from 'axios';
 

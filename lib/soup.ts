@@ -1,5 +1,5 @@
-const Database = require('better-sqlite3');
-const Supercluster = require('supercluster');
+import * as BetterSqlite3 from 'better-sqlite3';
+import * as Supercluster from 'supercluster';
 
 const KMS_PER_MILE = 1.609;
 const NMS_PER_MILE = 0.868976242;
@@ -7,7 +7,100 @@ const EARTH_RADIUS_IN_MILES = 3963.19;
 const EARTH_RADIUS_IN_KMS = EARTH_RADIUS_IN_MILES * KMS_PER_MILE;
 const EARTH_RADIUS_IN_NMS = EARTH_RADIUS_IN_MILES * NMS_PER_MILE;
 
-function units_sphere_multiplier(units) {
+export interface Query {
+  key?: string[],
+  city?: string[],
+  state?: string[],
+  country?: string[],
+  around?: [number, number, number, 'km'|'mile'],  // lat, long, distance, unit
+
+  map?: 'min'|'normal',
+  tag?: string[],
+  tags?: {[parent: string]: string[]},
+  team?: string[],
+
+  range?: [number, number, number, number],   // minLng, minLat, maxLng, maxLat
+  zoom?: number,
+  radius?: number,
+  maxZoom?: number,
+
+  optionPrefix?: string,
+
+  group?: boolean,
+  includeTags?: boolean,
+  parents?: string[],
+}
+
+export interface Coord {
+  lat: string,
+  lng: string,
+}
+
+export interface Address {
+  address1: string,
+  address2: string,
+  city: string,
+  state: string,
+  zip: string,
+  country: string,
+}
+
+export interface MinMapItem extends Coord {
+  name: string,
+  org_id: number,
+  loc_id: number,
+}
+
+export interface MapItem extends MinMapItem, Address {
+}
+
+export interface Loc extends Coord, Address {
+  id: number,
+  is_primary?: boolean,
+}
+
+export interface Org {
+  id: number,
+  name: string,
+  locs: Array<Loc>,
+}
+
+export interface Tag {
+  id: number,
+  name: string,
+  id1: number|null,
+  name1: string|null,
+  id2: number|null,
+  name2: string|null,
+}
+
+export interface Hit {
+  id: number,
+  name: string,
+
+  description: string,
+
+  website: string|null,
+  email: string|null,
+  phone: string|null,
+  fax: string|null,
+
+  year_founded: number|null,
+
+  created_at: string|null,
+  updated_at: string|null,
+
+  locs: Loc[],
+  tags?: Tag[],
+}
+
+export interface Group {
+  group: number,
+  orgs: Hit[]
+}
+
+
+function units_sphere_multiplier(units: string) {
   units = units.split('s')[0]
   if (units === 'km') {
     return EARTH_RADIUS_IN_KMS
@@ -19,11 +112,11 @@ function units_sphere_multiplier(units) {
   throw new Error('unrecognized unit');
 }
 
-function radians(deg) {
+function radians(deg: number) {
   return deg * Math.PI / 180.0;
 }
 
-function add_math_to_sqlite(db) {
+function add_math_to_sqlite(db: any) {
   db.register(Math.sqrt);
   db.register(Math.cos);
   db.register(Math.sin);
@@ -33,7 +126,8 @@ function add_math_to_sqlite(db) {
               Math.min);
 }
     
-function sphere_distance_sql(lat, lng, multiplier, threshold) {
+function sphere_distance_sql(lat: number, lng: number, multiplier: number,
+                             threshold: number): [string, number[]] {
   const cond = " \
        latitude is not null and longitude is not null and \
         (ACOS(least(1,COS(?)*COS(?)*COS(RADIANS(latitude))*COS(RADIANS(longitude))+ \
@@ -46,21 +140,21 @@ function sphere_distance_sql(lat, lng, multiplier, threshold) {
   return [cond, params];
 }
   
-class Query {
+class QueryBuilder {
+  public joins: string[] = ["from organizations"];
+  public wheres: string[] = [];
+  public params: any[] = [];
+  public selects: string[] = ["organizations.*"];
+  public groups?: string[];
+  public limits?: string|null = null;
+  public orders: string|null = null;
+  public have_tags: any = {};
+  public have_dsos: boolean = false;
+
   constructor() {
-    this.joins = [];
-    this.wheres = [];
-    this.params = [];
-    this.selects = ["organizations.*"];
-    this.joins.push("from organizations");
-    this.groups = null;
-    this.limits = null;
-    this.orders = null;
-    this.have_tags = {};
-    this.have_dsos = false;
   }
 
-  narrow_by_term(term) {
+  public narrow_by_term(term?: string[]) {
     if (!term) { return; }
     this.joins.push('inner join units' +
                     '  on units.taggable_id = organizations.id' +
@@ -69,7 +163,7 @@ class Query {
     this.params.push(term.join(' '));
   }
 
-  select_locations() {
+  public select_locations() {
     this.joins.push('left join locations' +
                     '  on locations.taggable_id = organizations.id' +
                     '  and locations.taggable_type = \'Organization\'');
@@ -90,7 +184,7 @@ class Query {
                       'locations.longitude as locs__lng');
   }
 
-  narrow_by_geo(part, options) {
+  public narrow_by_geo(part: string, options: string[]|null) {
     if (!options) { return; }
     const qs = options.map(x => '?').join(',');
     if (part === 'zip' && !options.some(x => x.includes('-'))) {
@@ -110,7 +204,7 @@ class Query {
     }
   }
 
-  join_tags(postfix, joinType) {
+  public join_tags(postfix: string, joinType?: string) {
     joinType = joinType || 'inner';
     if (this.have_tags[postfix]) { return; }
     this.joins.push(`${joinType} join taggings as taggings${postfix}` +
@@ -121,24 +215,15 @@ class Query {
     this.have_tags[postfix] = true;
   }
 
-  narrow_by_tags(tags) {
+  public narrow_by_tags(tags: string[]) {
     if (!tags) { return; }
-    /*
-    const qs = tags.map(x => '?').join(',');
-    const ptags = tags.filter(k => k[0] !== '!');
-    const ntags = tags.filter(k => k[0] === '!').map(k => k.slice(1));
-    this.join_tags("")
-    this.wheres.push(`tags.name in (${qs})`);
-    this.params.push(...tags);
-    */
     this.narrow_by_many_tags({'': tags});
   }
 
-  narrow_by_many_tags(tags) {
+  public narrow_by_many_tags(tags: {[name: string]: string[]}) {
     if (!tags) { return; }
     const keys = Object.keys(tags);
     for (const key of keys) {
-      const ktags = tags[key];
       const ptags = tags[key].filter(k => k[0] !== '!');
       const ntags = tags[key].filter(k => k[0] === '!').map(k => k.slice(1));
       const postfix = key ? `_${key}` : '';
@@ -168,14 +253,14 @@ class Query {
     }
   }
 
-  join_dsos() {
+  public join_dsos() {
     if (this.have_dsos) { return; }
     this.joins.push('inner join data_sharing_orgs_taggables as dt on dt.taggable_id = organizations.id and dt.taggable_type = \'Organization\'');
     this.joins.push('inner join data_sharing_orgs on dt.data_sharing_org_id = data_sharing_orgs.id');
     this.have_dsos = true;
   }
 
-  narrow_by_dsos(dsos) {
+  public narrow_by_dsos(dsos?: string[]) {
     if (!dsos) { return; }
     this.join_dsos();
     const qs = dsos.map(x => '?').join(',');
@@ -183,25 +268,25 @@ class Query {
     this.params.push(...dsos);
   }
 
-  narrow_by_distance(around) {
+  public narrow_by_distance(around?: [string, string, string, string]) {
     if (!around) { return; }
     const [lat, lng, dist, unit] = around;
-    const [dwhere, dparams] = sphere_distance_sql(parseFloat(lat, 10),
-                                                  parseFloat(lng, 10),
+    const [dwhere, dparams] = sphere_distance_sql(parseFloat(lat),
+                                                  parseFloat(lng),
                                                   units_sphere_multiplier(unit),
-                                                  parseFloat(dist, 10));
+                                                  parseFloat(dist));
     this.wheres.push(dwhere);
     this.params.push(...dparams);
   }
 
-  narrow_by_grouping(grouping) {
+  public narrow_by_grouping(grouping?: number) {
     if (!grouping) { return; }
     // this is intended for use only by single-entry endpoint
     this.wheres.push('coalesce(grouping, organizations.id) = (select coalesce(org2.grouping, org2.id) from organizations as org2 where org2.id = ?)');
     this.params.push(grouping);
   }
 
-  select_options(key, prefix, args) {
+  public select_options(key: string|undefined, prefix: string, args: {parents: string[]}) {
     if (!key) { return; }
     if (key === 'tag') { this.select_tag_options(prefix, args); }
     else if (key === 'tag_parent') { this.select_tag_parent_options(prefix); }
@@ -209,7 +294,7 @@ class Query {
     else { this.select_loc_options(key, prefix); }
   }
 
-  select_tag_options(prefix, args) {
+  public select_tag_options(prefix: string, args: {parents: string[]}) {
     this.selects = ['distinct tags.id, tags.name'];
     this.orders = 'order by tags.name';
     this.wheres.push('tags.name <> "" and tags.name is not null');
@@ -226,7 +311,7 @@ class Query {
     }
   }
 
-  select_tag_parent_options(prefix) {
+  public select_tag_parent_options(prefix: string) {
     this.selects = ['distinct tags_parent.id as id, tags_parent.name'];
     this.orders = 'order by tags_parent.name';
     this.join_tags("");
@@ -237,7 +322,7 @@ class Query {
     }
   }
 
-  select_team_options(prefix) {
+  public select_team_options(prefix: string) {
     this.selects = ['distinct data_sharing_orgs.id as id, data_sharing_orgs.name'];
     this.orders = 'order by data_sharing_orgs.name';
     this.join_dsos();
@@ -247,7 +332,7 @@ class Query {
     }
   }
 
-  select_loc_options(key, prefix) {
+  public select_loc_options(key?: string, prefix?: string) {
     if (!key) { return; }
     this.selects = ['distinct locations.physical_' + key + ' as name'];
     this.wheres.push('locations.physical_' + key + ' <> "" and locations.physical_' + key + ' is not null');
@@ -258,7 +343,8 @@ class Query {
     }
   }
 
-  select_map(active, range, args) {
+  public select_map(active: string|undefined, range: [number, number, number, number],
+                    args: {icon?: boolean}) {
     if (!active) { return; }
     this.selects = ['locations.longitude as lng', 'locations.latitude as lat',
                     'organizations.name as name', 'organizations.id as org_id',
@@ -288,7 +374,7 @@ class Query {
     this.orders = null;
   }
 
-  select_tags(active) {
+  public select_tags(active?: string) {
     if (!active) { return; }
     // throw new Error('Not yet supported');
     this.joins.push('left join taggings as sel_taggings ' +
@@ -302,13 +388,13 @@ class Query {
     this.selects.push('grandparent_tag.name as tags__name2, grandparent_tag.id as tags__id2');
   }
 
-  limit(v) {
+  public limit(v: string) {
     if (!v) { return; }
     // nasty use of wheres
     this.limits = `limit ${parseInt(v, 10)}`;
   }
 
-  serialize() {
+  public serialize() {
     const txts = ["select"];
     txts.push(this.selects.join(", "));
     if (this.joins) {
@@ -331,19 +417,21 @@ class Query {
     return txts;
   }
 
-  text() {
+  public text() {
     return this.serialize().join(' ');
   }
 }
 
-class Search {
-  constructor(fname) {
-    const db = new Database(fname);
+export class Search {
+  private db: BetterSqlite3.Database;
+
+  constructor(fname: string) {
+    const db = new BetterSqlite3(fname);
     add_math_to_sqlite(db);
     this.db = db;
   }
 
-  enlist(arg) {
+  public enlist(arg: string|string[]|null) {
     if (typeof(arg) === 'string') {
       if (arg === '') {
         return null;
@@ -353,14 +441,14 @@ class Search {
     return arg;
   }
 
-  single(arg) {
+  public single(arg: string|string[]) {
     if (!arg) { return arg; }
     if (typeof(arg) === 'string') { return arg; }
     return arg[0];
   }
 
-  compile(args) {
-    const query = new Query();
+  public compile(args: any) {
+    const query = new QueryBuilder();
     query.narrow_by_term(args.key);
     query.select_locations();
     query.narrow_by_distance(args.around);
@@ -382,7 +470,7 @@ class Search {
     return query;
   }
 
-  search(args) {
+  public search(args: any) {
     const query = this.compile(args);
     if (args.verbose) {
       const txts = query.serialize();
@@ -394,13 +482,13 @@ class Search {
     return this.db.prepare(query.text()).all(query.params);
   }
 
-  map(args, flavor) {
+  public map(args: any, flavor?: string) {
     args = args || {};
     args.map = flavor || args.map || 'normal';
     return this.search(args);
   }
 
-  cluster(args) {
+  public cluster(args: any) {
     args = args || {};
     args.map = 'min';
     const range = args.range || [-180, -85, 180, 85];
@@ -413,9 +501,9 @@ class Search {
       maxZoom
     });
     const data = results.map(row => ({
-      "type": "Feature",
+      "type": "Feature" as "Feature",
       "geometry": {
-        "type": "Point",
+        "type": "Point" as "Point",
         "coordinates": [parseFloat(row.lng), parseFloat(row.lat)]
       },
       "properties": {
@@ -429,25 +517,25 @@ class Search {
     return index.getClusters(range, zoom);
   }
 
-  org(id) {
+  public org(id: number) {
     const txts = [];
     txts.push('select * from organizations where id = ?');
     return this.db.prepare(txts.join(' ')).get(id);
   }
 
-  locs(org_id) {
+  public locs(org_id: number) {
     const txts = [];
     txts.push('select * from locations where taggable_id = ? and taggable_type = ?');
     return this.db.prepare(txts.join(' ')).get(org_id, 'Organization');
   }
 
-  groupedOrg(id, params) {
+  public groupedOrg(id: number, params: any) {
     params = params || {};
     params.grouping = id;
     return this.search(params);
   }
 
-  options(key, params) {
+  public options(key: string, params: any) {
     if (['city', 'state', 'country', 'zip', 'tag',
          'tag_parent', 'team'].indexOf(key) < 0) { return []; }
     params = params || {};
@@ -455,18 +543,17 @@ class Search {
     return this.search(params);
   }
 
-  addType(type, lst) {
+  public addType(type: string, lst: any[]) {
     lst.forEach(x => x.type = type);
     lst.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
     return lst;
   }
 
-  autocomplete(params, limit) {
+  public autocomplete(params: any, limit?: number) {
     if (!params.key) { return []; }
     if (params.key.length !== 1) { return []; }
     const key = params.key[0];
     params = params || {};
-    const fullLimit = limit;
 
     if (key === "") {
       params.key = null;
@@ -476,13 +563,12 @@ class Search {
     }
 
     const results = [];
-    params.limit = 3;
+    params.limit = limit || 3;
 
     params.key = null;
     params.optionPrefix = key;
     for (const option of ['team', 'tag', 'city', 'state', 'country', 'zip']) {
       params.options = option;
-      const v2 = this.search(params);
       results.push(...this.addType(option, this.search(params)));
     }
     params.options = null;
@@ -501,11 +587,11 @@ class Search {
 
 if (require.main === module) {
   if (process.argv.length < 3) {
-    console.log("call as: node ./lib/soup.js foo.sqlite3 [keyword]*");
+    console.log("call as: ts-node ./lib/soup.ts foo.sqlite3 [keyword]*");
     process.exit(1);
   }
   const s = new Search(process.argv[2]);
-  const params = {
+  const params: any = {
     verbose: false
   };
   if (process.argv.length > 3) {
@@ -513,8 +599,4 @@ if (require.main === module) {
   }
   console.log(JSON.stringify(s.search(params), null, 2));
 }
-
-module.exports = {
-  Search,
-};
 
