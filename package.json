@@ -1,6 +1,6 @@
 {
   "name": "stonesouper",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A backend for a stonesoup-style directory",
   "main": "dist/lib/stonesouper",
   "typings": "dist/lib/stonesouper",
