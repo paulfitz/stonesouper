@@ -1,7 +1,7 @@
 import {assert} from 'chai';
 
 import {startServer, stopServer} from 'lib/server';
-import {Group, Hit, Query} from 'lib/soup';
+import {Group, Hit, QueryOptions} from 'lib/soup';
 
 import axios from 'axios';
 
@@ -16,12 +16,12 @@ let app: any;
 
 const base = "http://localhost:9999";
 
-async function search(query: Query): Promise<Hit[]> {
+async function search(query: QueryOptions): Promise<Hit[]> {
   const result = await axios.post(base + '/api/search', query);
   return result.data;
 }
 
-async function searchGroup(query: Query): Promise<Group[]> {
+async function searchGroup(query: QueryOptions): Promise<Group[]> {
   const query2 = JSON.parse(JSON.stringify(query));
   query2.group = true;
   const result = await axios.post(base + '/api/search', query2);

@@ -7,11 +7,12 @@ const EARTH_RADIUS_IN_MILES = 3963.19;
 const EARTH_RADIUS_IN_KMS = EARTH_RADIUS_IN_MILES * KMS_PER_MILE;
 const EARTH_RADIUS_IN_NMS = EARTH_RADIUS_IN_MILES * NMS_PER_MILE;
 
-export interface Query {
+export interface QueryOptions {
   key?: string[],
   city?: string[],
   state?: string[],
   country?: string[],
+  zip?: string[],
   around?: [number, number, number, 'km'|'mile'],  // lat, long, distance, unit
 
   map?: 'min'|'normal',
@@ -29,6 +30,18 @@ export interface Query {
   group?: boolean,
   includeTags?: boolean,
   parents?: string[],
+
+  verbose?: boolean,
+
+  grouping?: number,   // filter for listings for a particular group
+
+  options?: string,    // meta-search: get autocomplete options
+
+  icon?: boolean,      // include summary icons
+
+  limit?: string|number,   // maximum results to return
+
+  onePerGroup?: boolean,   // at most one result per group
 }
 
 export interface Coord {
@@ -184,7 +197,7 @@ class QueryBuilder {
                       'locations.longitude as locs__lng');
   }
 
-  public narrow_by_geo(part: string, options: string[]|null) {
+  public narrow_by_geo(part: string, options?: string[]|null) {
     if (!options) { return; }
     const qs = options.map(x => '?').join(',');
     if (part === 'zip' && !options.some(x => x.includes('-'))) {
@@ -215,12 +228,12 @@ class QueryBuilder {
     this.have_tags[postfix] = true;
   }
 
-  public narrow_by_tags(tags: string[]) {
+  public narrow_by_tags(tags?: string[]) {
     if (!tags) { return; }
     this.narrow_by_many_tags({'': tags});
   }
 
-  public narrow_by_many_tags(tags: {[name: string]: string[]}) {
+  public narrow_by_many_tags(tags?: {[name: string]: string[]}) {
     if (!tags) { return; }
     const keys = Object.keys(tags);
     for (const key of keys) {
@@ -268,25 +281,25 @@ class QueryBuilder {
     this.params.push(...dsos);
   }
 
-  public narrow_by_distance(around?: [string, string, string, string]) {
+  public narrow_by_distance(around?: [string|number, string|number, string|number, 'km'|'mile']) {
     if (!around) { return; }
     const [lat, lng, dist, unit] = around;
-    const [dwhere, dparams] = sphere_distance_sql(parseFloat(lat),
-                                                  parseFloat(lng),
+    const [dwhere, dparams] = sphere_distance_sql(Number(lat),
+                                                  Number(lng),
                                                   units_sphere_multiplier(unit),
-                                                  parseFloat(dist));
+                                                  Number(dist));
     this.wheres.push(dwhere);
     this.params.push(...dparams);
   }
 
-  public narrow_by_grouping(grouping?: number) {
+  public narrow_by_grouping(grouping?: number|string) {
     if (!grouping) { return; }
     // this is intended for use only by single-entry endpoint
     this.wheres.push('coalesce(grouping, organizations.id) = (select coalesce(org2.grouping, org2.id) from organizations as org2 where org2.id = ?)');
     this.params.push(grouping);
   }
 
-  public select_options(key: string|undefined, prefix: string, args: {parents: string[]}) {
+  public select_options(key: string|undefined, prefix: string, args: {parents?: string[]}) {
     if (!key) { return; }
     if (key === 'tag') { this.select_tag_options(prefix, args); }
     else if (key === 'tag_parent') { this.select_tag_parent_options(prefix); }
@@ -294,7 +307,7 @@ class QueryBuilder {
     else { this.select_loc_options(key, prefix); }
   }
 
-  public select_tag_options(prefix: string, args: {parents: string[]}) {
+  public select_tag_options(prefix: string, args: {parents?: string[]}) {
     this.selects = ['distinct tags.id, tags.name'];
     this.orders = 'order by tags.name';
     this.wheres.push('tags.name <> "" and tags.name is not null');
@@ -343,8 +356,8 @@ class QueryBuilder {
     }
   }
 
-  public select_map(active: string|undefined, range: [number, number, number, number],
-                    args: {icon?: boolean}) {
+  public select_map(active: string|undefined, range?: [number, number, number, number],
+                    args?: {icon?: boolean}) {
     if (!active) { return; }
     this.selects = ['locations.longitude as lng', 'locations.latitude as lat',
                     'organizations.name as name', 'organizations.id as org_id',
@@ -367,14 +380,14 @@ class QueryBuilder {
     if (active === 'directory') {
       this.selects.push('grouping');
     }
-    if (args.icon) {
+    if (args && args.icon) {
       // for dbs that have an icon field attached to organizations, select it.
       this.selects.push('icon_group_id');
     }
     this.orders = null;
   }
 
-  public select_tags(active?: string) {
+  public select_tags(active?: boolean) {
     if (!active) { return; }
     // throw new Error('Not yet supported');
     this.joins.push('left join taggings as sel_taggings ' +
@@ -388,10 +401,10 @@ class QueryBuilder {
     this.selects.push('grandparent_tag.name as tags__name2, grandparent_tag.id as tags__id2');
   }
 
-  public limit(v: string) {
+  public limit(v?: string|number) {
     if (!v) { return; }
     // nasty use of wheres
-    this.limits = `limit ${parseInt(v, 10)}`;
+    this.limits = `limit ${Number(v)}`;
   }
 
   public serialize() {
@@ -431,7 +444,7 @@ export class Search {
     this.db = db;
   }
 
-  public enlist(arg: string|string[]|null) {
+  public enlist(arg?: string|string[]|null) {
     if (typeof(arg) === 'string') {
       if (arg === '') {
         return null;
@@ -441,13 +454,13 @@ export class Search {
     return arg;
   }
 
-  public single(arg: string|string[]) {
+  public single(arg?: string|string[]) {
     if (!arg) { return arg; }
     if (typeof(arg) === 'string') { return arg; }
     return arg[0];
   }
 
-  public compile(args: any) {
+  public compile(args: QueryOptions) {
     const query = new QueryBuilder();
     query.narrow_by_term(args.key);
     query.select_locations();
@@ -460,9 +473,9 @@ export class Search {
     query.narrow_by_many_tags(args.tags);
     query.narrow_by_dsos(args.team);
     query.narrow_by_grouping(args.grouping);
-    query.select_options(args.options, this.single(args.optionPrefix), args);
+    query.select_options(args.options, this.single(args.optionPrefix) || '', args);
     query.select_map(args.map, args.range, args);
-    query.select_tags(args.includeTags);
+    query.select_tags(Boolean(args.includeTags));
     query.limit(args.limit);
     if (args.onePerGroup) {
       query.groups = ['coalesce(grouping, organizations.id)'];
@@ -470,7 +483,7 @@ export class Search {
     return query;
   }
 
-  public search(args: any) {
+  public search(args: QueryOptions) {
     const query = this.compile(args);
     if (args.verbose) {
       const txts = query.serialize();
@@ -591,7 +604,7 @@ if (require.main === module) {
     process.exit(1);
   }
   const s = new Search(process.argv[2]);
-  const params: any = {
+  const params: QueryOptions = {
     verbose: false
   };
   if (process.argv.length > 3) {

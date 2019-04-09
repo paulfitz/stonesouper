@@ -1,9 +1,9 @@
-*
+/*
 !index.js
 !package.json
 !package-lock.json
 !README.md
 !.gitignore
-!lib/*
-!bin/*
+!lib/
+!bin/
 
