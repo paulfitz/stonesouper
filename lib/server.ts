@@ -1,7 +1,9 @@
 import * as bodyParser from 'body-parser';
+import {Cache} from './cache';
 import * as express from 'express';
 import {Search} from './soup';
 import {summarizeOrg} from './summary';
+import {Server} from 'http';
 import {groupBy, values} from 'lodash';
 
 function nested1(vals: {[key: string]: any}) {
@@ -92,10 +94,18 @@ class ApiError extends Error {
   }
 }
 
+export class Bundle {
+  public cache: Cache;
+  public server: Server;
+}
+
 export function startServer(filename: string, port: number, verbose: boolean) {
+  const bundle = new Bundle();
+
   const log = verbose ? console.log : (() => 1);
 
   const db = new Search(filename);
+  const cache = new Cache(30, 60 * 60 * 24);
 
   const app = express();
   app.use(bodyParser.json());
@@ -184,39 +194,58 @@ export function startServer(filename: string, port: number, verbose: boolean) {
       if (!body.tags) { body.tags = {}; }
       body.tags[''] = asList(req.query.require_org_type);
     }
-    const raw = db.cluster(body);
-    const cooked = {
-      clusters: {
-        features: [] as any[]
-      },
-      grouped_points: [] as any[],  // what goes here?
-      single_points: {
-        features: [] as any[]
+    const key = JSON.stringify(body);
+    const payload = cache.get(key);
+    if (payload) {
+      res.set('Content-Type', 'application/json');
+      res.charset = 'utf-8';
+      res.send(payload);
+      if (!cache.isRusty(key)) {
+        return;
       }
     }
-    for (const feat of raw) {
-      delete feat.id;
-      if (feat.properties.cluster) {
-        cooked.clusters.features.push(feat);
-        feat.properties = {clusterCount: feat.properties.point_count};
-      } else {
-        cooked.single_points.features.push(feat);
-        feat.properties = {
-          popupContent: feat.properties.name,
-          org_id: String(feat.properties.id),
-          icon_group_id: String(feat.properties.icon)
-        };
+    cache.add(key, () => {
+      const raw = db.cluster(body);
+      const cooked = {
+        clusters: {
+          features: [] as any[]
+        },
+        grouped_points: [] as any[],  // what goes here?
+        single_points: {
+          features: [] as any[]
+        }
       }
-    }
-    res.json(cooked);
+      for (const feat of raw) {
+        delete feat.id;
+        if (feat.properties.cluster) {
+          cooked.clusters.features.push(feat);
+          feat.properties = {clusterCount: feat.properties.point_count};
+        } else {
+          cooked.single_points.features.push(feat);
+          feat.properties = {
+            popupContent: feat.properties.name,
+            org_id: String(feat.properties.id),
+            icon_group_id: String(feat.properties.icon)
+          };
+        }
+      }
+      return cooked;
+    }, (cooked) => {
+      res.json(cooked);
+      return JSON.stringify(cooked);
+    });
+    cache.update();
   });
 
   app.use(express.static('website'));
 
-  return app.listen(port, () => log(`== port ${port}`));
+  const server = app.listen(port, () => log(`== port ${port}`));
+  bundle.server = server;
+  bundle.cache = cache;
+  return bundle;
 }
 
-export function stopServer(server: any) {
-  server.close();
+export function stopServer(bundle: Bundle) {
+  bundle.server.close();
 }
 

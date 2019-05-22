@@ -1,6 +1,6 @@
 import {assert} from 'chai';
 
-import {startServer, stopServer} from 'lib/server';
+import {Bundle, startServer, stopServer} from 'lib/server';
 import {Group, Hit, QueryOptions} from 'lib/soup';
 
 import axios from 'axios';
@@ -12,7 +12,7 @@ import {orderBy} from 'lodash';
 
 let dbFilename: string;
 let tmpobj;
-let app: any;
+let app: Bundle;
 
 const base = "http://localhost:9999";
 
@@ -334,6 +334,30 @@ describe('server', async () => {
     const result2 = await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6&radius=1');
     assert.isAbove(result2.data.single_points.features.length,
                    result.data.single_points.features.length);
+  });
+
+  it('GET /geosearch caching does something', async () => {
+    app.cache.clear();
+    for (let i = 0; i < 300; i++) {
+      const result = await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+      assert.sameMembers(Object.keys(result.data), ['clusters', 'grouped_points', 'single_points']);
+    }
+    assert.equal(app.cache.sets, 1);
+    assert.equal(app.cache.gets, 299);
+  });
+
+  it('GET /geosearch caching is bounded', async () => {
+    app.cache.clear();
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    app.cache.testAddTime(5.0);
+    for (let i = 0; i < 300; i++) {
+      await axios.get(base + `/geosearch?bounds=-123,34.${i}1,-122,35&zoom=6`);
+    }
+    assert.equal(app.cache.length, app.cache.targetCount);
+    // slowest query should survive
+    const pre = app.cache.sets;
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    assert.equal(app.cache.sets, pre);
   });
 
   it('GET /api/nothing throws json error', async () => {
