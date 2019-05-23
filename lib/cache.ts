@@ -1,18 +1,19 @@
-
 interface CacheItem {
   key: string;
   payload: string;
   updatedAt: number;
   computeTime: number;
+  recompute?: () => string;
 }
 
 export class Cache {
   private items = new Array<CacheItem>();
   private access = new Map<string, number>();
+  private rusty = new Set<string>();
   public sets: number = 0;
   public gets: number = 0;
 
-  public constructor(readonly targetCount: number, readonly expireSec: number) {
+  public constructor(public targetCount: number, public expireSec: number) {
   }
 
   public get length() {
@@ -24,21 +25,29 @@ export class Cache {
     if (at === undefined) { return; }
     if (this._expireIfOld(at)) { return; }
     this.gets++;
-    return this.items[at].payload;
+    const item = this.items[at];
+    if (this._isRusty(item)) {
+      this.rusty.add(item.key);
+    }
+    return item.payload;
   }
 
-  public add<T>(key: string, compute: () => T, use: (result: T) => string) {
+  public add<T>(key: string, compute: () => T, use: (result: T) => string,
+                allowRecompute: boolean): T {
     const hrStart = process.hrtime();
     const result = compute();
     const hrStop = process.hrtime(hrStart);
     const payload = use(result);
     const computeTime = hrStop[0] * 1e9 + hrStop[1];
     const updatedAt = Date.now();
-    this.addWithTimes(key, payload, computeTime, updatedAt);
+    const recompute = allowRecompute ? (() => use(compute())) : undefined;
+    this.addWithTimes(key, payload, computeTime, updatedAt, recompute);
+    return result;
   }
   
-  public addWithTimes(key: string, payload: string, computeTime: number, updatedAt: number) {
-    const item = { key, payload, updatedAt, computeTime };
+  public addWithTimes(key: string, payload: string, computeTime: number, updatedAt: number,
+                      recompute?: () => string) {
+    const item = { key, payload, updatedAt, computeTime, recompute };
     let at = this.access.get(key);
     if (at === undefined) {
       if (this.items.length >= this.targetCount && this.items.length > 0) {
@@ -63,9 +72,9 @@ export class Cache {
   public update() {
     // Keep expiration moving.
     const di = 20;
-    while (this.items.length > di) {
+    while (this.items.length > 0) {
       let ct: number = 0;
-      for (let sample = 0; sample < di; sample++) {
+      for (let sample = 0; sample < di && this.items.length > 0; sample++) {
         const at = Math.floor(Math.random() * this.items.length);
         if (this._expireIfOld(at)) { ct++; }
       }
@@ -73,6 +82,16 @@ export class Cache {
         break;
       }
     }
+    // Keep rusty keys moving.
+    for (const key of this.rusty) {
+      const at = this.access.get(key);
+      if (at === undefined) { continue; }
+      const item = this.items[at];
+      if (!item.recompute) { continue; }
+      item.payload = item.recompute();
+      this.add(key, item.recompute, (x) => x, true);
+    }
+    this.rusty.clear();
   }
 
   public testAddTime(sec: number) {
@@ -81,17 +100,16 @@ export class Cache {
     }
   }
 
-  public isRusty(key: string): boolean {
-    const at = this.access.get(key);
-    if (at === undefined) { return false; }
-    const last = Date.now() - this.expireSec * 0.5 * 1000;
-    return (this.items[at].updatedAt < last)
-  }
-
   public clear() {
     this.items.length = 0;
     this.access.clear();
     this.gets = this.sets = 0;
+    this.rusty.clear();
+  }
+
+  private _isRusty(item: CacheItem): boolean {
+    const last = Date.now() - this.expireSec * 0.5 * 1000;
+    return (item.updatedAt < last)
   }
 
   private _expireIfOld(at: number): boolean {
@@ -107,6 +125,11 @@ export class Cache {
   private _removeItem(at: number) {
     const item = this.items[at];
     this.access.delete(item.key);
-    this.items.splice(at, 1);
+    const target = this.items.length - 1;
+    if (at !== target) {
+      this.items[at] = this.items[target];
+      this.access.set(this.items[target].key, at);
+    }
+    this.items.length = this.items.length - 1;
   }
 }

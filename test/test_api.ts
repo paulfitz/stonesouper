@@ -28,6 +28,16 @@ async function searchGroup(query: QueryOptions): Promise<Group[]> {
   return result.data;
 }
 
+async function delay(sec: number) {
+  return new Promise((resolve, reject) => {
+    try {
+      setTimeout(resolve, Math.round(sec * 1000));
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 function namify(lst: {name: string}[]) {
   return lst.map(item => item.name);
 }
@@ -44,7 +54,7 @@ describe('server', async () => {
   });
 
   after(async () => {
-    stopServer(app);
+    return stopServer(app);
   });
 
   it('GET /api/search responds to params.key', async () => {
@@ -342,6 +352,7 @@ describe('server', async () => {
       const result = await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
       assert.sameMembers(Object.keys(result.data), ['clusters', 'grouped_points', 'single_points']);
     }
+    await app.sync();
     assert.equal(app.cache.sets, 1);
     assert.equal(app.cache.gets, 299);
   });
@@ -353,11 +364,52 @@ describe('server', async () => {
     for (let i = 0; i < 300; i++) {
       await axios.get(base + `/geosearch?bounds=-123,34.${i}1,-122,35&zoom=6`);
     }
+    await app.sync();
     assert.equal(app.cache.length, app.cache.targetCount);
     // slowest query should survive
     const pre = app.cache.sets;
     await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    await app.sync();
     assert.equal(app.cache.sets, pre);
+  });
+
+  it('GET /geosearch caching refreshes', async () => {
+    app.cache.clear();
+    const prevExpireSec = app.cache.expireSec;
+    app.cache.expireSec = 1.0;
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    await app.sync();
+    const v1 = app.cache.sets;
+    await delay(0.1);
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    await app.sync();
+    const v2 = app.cache.sets;
+    await delay(0.4);
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    await app.sync();
+    const v3 = app.cache.sets;
+    app.cache.expireSec = prevExpireSec;
+    assert.equal(v1, 1);
+    assert.equal(v2, 1);
+    assert.equal(v3, 2);
+  });
+
+  it('GET /geosearch caching clears', async () => {
+    app.cache.clear();
+    const prevExpireSec = app.cache.expireSec;
+    app.cache.expireSec = 0.5;
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,50&zoom=6');
+    await app.sync();
+    assert.equal(app.cache.length, 1);
+    await delay(0.25);
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,51&zoom=6');
+    await app.sync();
+    assert.equal(app.cache.length, 2);
+    await delay(0.25);
+    await axios.get(base + '/geosearch?bounds=-180,-50,180,51&zoom=6');
+    await app.sync();
+    assert.equal(app.cache.length, 1);
+    app.cache.expireSec = prevExpireSec;
   });
 
   it('GET /api/nothing throws json error', async () => {
